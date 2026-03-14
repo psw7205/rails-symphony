@@ -1,17 +1,29 @@
 #!/usr/bin/env ruby
 require_relative "../config/environment"
 
-workflow_path = ARGV[0] || File.join(Dir.pwd, "WORKFLOW.md")
+workflow_path = nil
 logs_root = nil
 port = nil
 
+skip_next = false
 ARGV.each_with_index do |arg, i|
+  if skip_next
+    skip_next = false
+    next
+  end
+
   if arg == "--logs-root" && ARGV[i + 1]
     logs_root = ARGV[i + 1]
+    skip_next = true
   elsif arg == "--port" && ARGV[i + 1]
     port = ARGV[i + 1].to_i
+    skip_next = true
+  elsif !arg.start_with?("--")
+    workflow_path ||= arg
   end
 end
+
+workflow_path ||= File.join(Dir.pwd, "WORKFLOW.md")
 
 unless File.exist?(workflow_path)
   $stderr.puts "Error: Workflow file not found: #{workflow_path}"

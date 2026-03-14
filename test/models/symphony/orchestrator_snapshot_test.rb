@@ -23,7 +23,7 @@ class Symphony::OrchestratorSnapshotTest < ActiveSupport::TestCase
     orch = Symphony::Orchestrator.new(
       tracker: @tracker, workspace: @workspace, agent: nil,
       workflow_store: @store,
-      on_dispatch: ->(_i, _a) {}
+      on_dispatch: ->(_i, _a) { }
     )
 
     orch.tick
@@ -49,7 +49,7 @@ class Symphony::OrchestratorSnapshotTest < ActiveSupport::TestCase
     orch = Symphony::Orchestrator.new(
       tracker: @tracker, workspace: @workspace, agent: nil,
       workflow_store: @store,
-      on_dispatch: ->(_i, _a) {}
+      on_dispatch: ->(_i, _a) { }
     )
     orch.tick
     sleep 0.05 # accumulate some runtime
@@ -64,7 +64,7 @@ class Symphony::OrchestratorSnapshotTest < ActiveSupport::TestCase
     orch = Symphony::Orchestrator.new(
       tracker: @tracker, workspace: @workspace, agent: nil,
       workflow_store: @store,
-      on_dispatch: ->(_i, _a) {}
+      on_dispatch: ->(_i, _a) { }
     )
     orch.tick
 
@@ -79,11 +79,34 @@ class Symphony::OrchestratorSnapshotTest < ActiveSupport::TestCase
     assert_equal 150, snap[:codex_totals][:total_tokens]
   end
 
+  test "token totals apply monotonic deltas for repeated usage updates" do
+    orch = Symphony::Orchestrator.new(
+      tracker: @tracker, workspace: @workspace, agent: nil,
+      workflow_store: @store,
+      on_dispatch: ->(_i, _a) { }
+    )
+    orch.tick
+
+    orch.handle_codex_update("1", {
+      event: :turn_completed,
+      usage: { input_tokens: 100, output_tokens: 50, total_tokens: 150 }
+    })
+    orch.handle_codex_update("1", {
+      event: :turn_completed,
+      usage: { input_tokens: 120, output_tokens: 70, total_tokens: 190 }
+    })
+
+    snap = orch.snapshot
+    assert_equal 120, snap[:codex_totals][:input_tokens]
+    assert_equal 70, snap[:codex_totals][:output_tokens]
+    assert_equal 190, snap[:codex_totals][:total_tokens]
+  end
+
   test "request_refresh triggers tick and returns payload" do
     orch = Symphony::Orchestrator.new(
       tracker: @tracker, workspace: @workspace, agent: nil,
       workflow_store: @store,
-      on_dispatch: ->(_i, _a) {}
+      on_dispatch: ->(_i, _a) { }
     )
 
     result = orch.request_refresh

@@ -39,17 +39,24 @@ class Symphony::ServiceConfigTest < ActiveSupport::TestCase
     assert_equal File.expand_path("~/symphony-workspaces"), config.workspace_root
   end
 
+  test "preserves bare relative workspace root" do
+    config = Symphony::ServiceConfig.new({
+      "workspace" => { "root" => "relative_workspaces" }
+    })
+    assert_equal "relative_workspaces", config.workspace_root
+  end
+
   test "returns default active and terminal states" do
     config = Symphony::ServiceConfig.new({})
-    assert_equal ["Todo", "In Progress"], config.active_states
-    assert_equal ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"], config.terminal_states
+    assert_equal [ "Todo", "In Progress" ], config.active_states
+    assert_equal [ "Closed", "Cancelled", "Canceled", "Duplicate", "Done" ], config.terminal_states
   end
 
   test "parses comma-separated state strings" do
     config = Symphony::ServiceConfig.new({
       "tracker" => { "active_states" => "Todo, In Progress, Rework" }
     })
-    assert_equal ["Todo", "In Progress", "Rework"], config.active_states
+    assert_equal [ "Todo", "In Progress", "Rework" ], config.active_states
   end
 
   test "reads per-state concurrency limits" do

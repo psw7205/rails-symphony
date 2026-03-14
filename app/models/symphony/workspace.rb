@@ -7,9 +7,16 @@ module Symphony
     attr_reader :root
 
     def initialize(root:, hooks: {}, hooks_timeout_ms: 60_000)
-      @root = File.expand_path(root)
+      @root = root.to_s
       @hooks = hooks
       @hooks_timeout_ms = hooks_timeout_ms
+    end
+
+    def reconfigure(root:, hooks:, hooks_timeout_ms:)
+      @root = root.to_s
+      @hooks = hooks
+      @hooks_timeout_ms = hooks_timeout_ms
+      :ok
     end
 
     def self.safe_identifier(identifier)

@@ -7,7 +7,7 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
     @issues = [
       Symphony::Issue.new(id: "1", identifier: "MT-1", title: "High pri", state: "Todo", priority: 1, created_at: Time.now),
       Symphony::Issue.new(id: "2", identifier: "MT-2", title: "Low pri", state: "Todo", priority: 3, created_at: Time.now),
-      Symphony::Issue.new(id: "3", identifier: "MT-3", title: "In progress", state: "In Progress", priority: 2, created_at: Time.now),
+      Symphony::Issue.new(id: "3", identifier: "MT-3", title: "In progress", state: "In Progress", priority: 2, created_at: Time.now)
     ]
     @tracker = Symphony::Trackers::Memory.new(issues: @issues)
     @workspace = Symphony::Workspace.new(root: @root)
@@ -97,13 +97,29 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
     refute @orchestrator.claimed.include?("1")
   end
 
+  test "on_retry_timer requeues when fetch fails" do
+    @orchestrator.tick
+    @orchestrator.on_worker_exit_normal("1", "MT-1")
+
+    failing_tracker = Object.new
+    def failing_tracker.fetch_candidate_issues(active_states:)
+      { error: :linear_api_status }
+    end
+
+    @orchestrator.instance_variable_set(:@tracker, failing_tracker)
+    @orchestrator.on_retry_timer("1")
+
+    assert @orchestrator.retry_attempts.key?("1")
+    assert @orchestrator.claimed.include?("1")
+  end
+
   test "blocked todo issues are not dispatched" do
     blocker_issue = Symphony::Issue.new(
       id: "4", identifier: "MT-4", title: "Blocked", state: "Todo", priority: 1,
-      blocked_by: [{ "id" => "5", "identifier" => "MT-5", "state" => "In Progress" }],
+      blocked_by: [ { "id" => "5", "identifier" => "MT-5", "state" => "In Progress" } ],
       created_at: Time.now
     )
-    tracker = Symphony::Trackers::Memory.new(issues: [blocker_issue])
+    tracker = Symphony::Trackers::Memory.new(issues: [ blocker_issue ])
 
     orch = Symphony::Orchestrator.new(
       tracker: tracker, workspace: @workspace, agent: nil,
@@ -146,7 +162,6 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
     assert orch.retry_attempts.size > 0, "Stalled entries should be scheduled for retry"
   end
 
-  # SPEC 17.4.13: Slot exhaustion requeues retries with error reason
   test "slot exhaustion requeues retry with error reason" do
     workflow_file = File.join(@root, "WORKFLOW_SLOT.md")
     File.write(workflow_file, "---\ntracker:\n  kind: linear\n  api_key: test\n  project_slug: proj\nagent:\n  max_concurrent_agents: 1\n---\nPrompt")
@@ -172,17 +187,28 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
 
     entry = orch.retry_attempts["2"]
     assert entry, "Should be requeued when no slots available"
+    assert_equal 2, entry[:attempt]
     assert_includes entry[:error].to_s, "no available orchestrator slots"
+  end
+
+  test "dispatch is skipped when workflow reload has active error" do
+    @orchestrator.tick
+    @dispatched.clear
+
+    @store.instance_variable_set(:@last_error, :workflow_parse_error)
+    @orchestrator.tick
+
+    assert_empty @dispatched
   end
 
   # SPEC 17.4.3: Todo issue with terminal blockers IS eligible
   test "todo issue with terminal blockers is dispatched" do
     issue = Symphony::Issue.new(
       id: "6", identifier: "MT-6", title: "Unblocked todo", state: "Todo", priority: 1,
-      blocked_by: [{ "id" => "7", "identifier" => "MT-7", "state" => "Done" }],
+      blocked_by: [ { "id" => "7", "identifier" => "MT-7", "state" => "Done" } ],
       created_at: Time.now
     )
-    tracker = Symphony::Trackers::Memory.new(issues: [issue])
+    tracker = Symphony::Trackers::Memory.new(issues: [ issue ])
 
     orch = Symphony::Orchestrator.new(
       tracker: tracker, workspace: @workspace, agent: nil,

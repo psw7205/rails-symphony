@@ -31,11 +31,9 @@ module Symphony
         return { error: :before_run_hook_failed, details: hook_result }
       end
 
-      run_result = run_agent_turns(issue, attempt, result[:path])
-
-      @workspace.run_after_run_hook(issue.identifier)
-
-      run_result
+      run_agent_turns(issue, attempt, result[:path])
+    ensure
+      @workspace.run_after_run_hook(issue.identifier) if result && result[:ok]
     end
 
     private
@@ -81,6 +79,8 @@ module Symphony
         ensure
           @agent.stop_session(session)
         end
+      rescue PromptBuilder::RenderError => e
+        { error: :prompt_render_failed, message: e.message }
       end
 
       def build_prompt(issue, attempt, turn_number, max_turns)
@@ -92,7 +92,7 @@ module Symphony
       end
 
       def check_continuation(issue)
-        result = @tracker.fetch_issue_states_by_ids([issue.id])
+        result = @tracker.fetch_issue_states_by_ids([ issue.id ])
         unless result[:ok]
           return { status: :error, details: result }
         end

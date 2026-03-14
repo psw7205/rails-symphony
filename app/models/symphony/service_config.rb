@@ -1,7 +1,7 @@
 module Symphony
   class ServiceConfig
-    DEFAULT_ACTIVE_STATES = ["Todo", "In Progress"].freeze
-    DEFAULT_TERMINAL_STATES = ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"].freeze
+    DEFAULT_ACTIVE_STATES = [ "Todo", "In Progress" ].freeze
+    DEFAULT_TERMINAL_STATES = [ "Closed", "Cancelled", "Canceled", "Duplicate", "Done" ].freeze
     DEFAULT_LINEAR_ENDPOINT = "https://api.linear.app/graphql".freeze
 
     def initialize(config)
@@ -33,7 +33,8 @@ module Symphony
     # Workspace
     def workspace_root
       raw = dig("workspace", "root") || File.join(Dir.tmpdir, "symphony_workspaces")
-      expand_path(resolve_env_var(raw) || raw)
+      value = resolve_env_var(raw) || raw
+      expand_workspace_root(value)
     end
 
     # Hooks
@@ -106,6 +107,19 @@ module Symphony
       def expand_path(path)
         return path unless path.is_a?(String)
         File.expand_path(path)
+      end
+
+      def expand_workspace_root(path)
+        return path unless path.is_a?(String)
+        return path if bare_relative_path?(path)
+        File.expand_path(path)
+      end
+
+      def bare_relative_path?(path)
+        return false if path.start_with?("~")
+        return false if path.include?(File::SEPARATOR)
+        return false if File::ALT_SEPARATOR && path.include?(File::ALT_SEPARATOR)
+        true
       end
 
       def parse_state_list(raw, default)

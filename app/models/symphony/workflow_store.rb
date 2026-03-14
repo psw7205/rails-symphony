@@ -2,13 +2,14 @@ require "zlib"
 
 module Symphony
   class WorkflowStore
-    attr_reader :config, :prompt_template, :path
+    attr_reader :config, :prompt_template, :path, :last_error
 
     def initialize(path)
       @path = path
       @stamp = nil
       @config = {}
       @prompt_template = ""
+      @last_error = nil
       @mutex = Mutex.new
       load!
     end
@@ -43,12 +44,14 @@ module Symphony
       def do_reload(stamp)
         result = Workflow.load(@path)
         if result[:error]
+          @last_error = result[:error]
           Rails.logger.error("[Symphony::WorkflowStore] Reload failed: #{result[:error]} #{result[:message]}")
           return
         end
         @config = result[:config]
         @prompt_template = result[:prompt_template]
         @stamp = stamp
+        @last_error = nil
         Rails.logger.info("[Symphony::WorkflowStore] Workflow reloaded from #{@path}")
       end
 
@@ -56,7 +59,7 @@ module Symphony
         return nil unless File.exist?(@path)
         stat = File.stat(@path)
         content_hash = Zlib.crc32(File.read(@path))
-        [stat.mtime, stat.size, content_hash]
+        [ stat.mtime, stat.size, content_hash ]
       rescue => e
         Rails.logger.warn("[Symphony::WorkflowStore] Stamp computation failed: #{e.message}")
         nil

@@ -17,7 +17,7 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
   end
 
   test "runs single turn successfully" do
-    agent = MockAgent.new(turn_results: [{ ok: true, event: :turn_completed }])
+    agent = MockAgent.new(turn_results: [ { ok: true, event: :turn_completed } ])
     tracker = Symphony::Trackers::Memory.new(issues: [
       Symphony::Issue.new(id: "1", identifier: "MT-1", title: "Fix bug", state: "Done")
     ])
@@ -37,7 +37,7 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
     agent = MockAgent.new(turn_results: [
       { ok: true, event: :turn_completed },
       { ok: true, event: :turn_completed },
-      { ok: true, event: :turn_completed },
+      { ok: true, event: :turn_completed }
     ])
     tracker = Symphony::Trackers::Memory.new(issues: [
       Symphony::Issue.new(id: "1", identifier: "MT-1", title: "Fix bug", state: "In Progress")
@@ -61,7 +61,7 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
     })
     agent = MockAgent.new(turn_results: [
       { ok: true, event: :turn_completed },
-      { ok: true, event: :turn_completed },
+      { ok: true, event: :turn_completed }
     ])
     tracker = Symphony::Trackers::Memory.new(issues: [
       Symphony::Issue.new(id: "1", identifier: "MT-1", title: "Fix bug", state: "Todo")
@@ -79,8 +79,8 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
   end
 
   test "returns error on turn failure" do
-    agent = MockAgent.new(turn_results: [{ error: :turn_failed }])
-    tracker = Symphony::Trackers::Memory.new(issues: [@issue])
+    agent = MockAgent.new(turn_results: [ { error: :turn_failed } ])
+    tracker = Symphony::Trackers::Memory.new(issues: [ @issue ])
 
     runner = Symphony::AgentRunner.new(
       workspace: @workspace, agent: agent, config: @config,
@@ -94,7 +94,7 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
   test "returns error on before_run hook failure" do
     ws = Symphony::Workspace.new(root: @root, hooks: { "before_run" => "exit 1" }, hooks_timeout_ms: 5000)
     agent = MockAgent.new(turn_results: [])
-    tracker = Symphony::Trackers::Memory.new(issues: [@issue])
+    tracker = Symphony::Trackers::Memory.new(issues: [ @issue ])
 
     runner = Symphony::AgentRunner.new(
       workspace: ws, agent: agent, config: @config,
@@ -109,7 +109,7 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
 
   test "emits events via on_event callback" do
     events = []
-    agent = MockAgent.new(turn_results: [{ ok: true, event: :turn_completed }])
+    agent = MockAgent.new(turn_results: [ { ok: true, event: :turn_completed } ])
     tracker = Symphony::Trackers::Memory.new(issues: [
       Symphony::Issue.new(id: "1", identifier: "MT-1", title: "Fix bug", state: "Done")
     ])
@@ -122,6 +122,19 @@ class Symphony::AgentRunnerTest < ActiveSupport::TestCase
     runner.run(issue: @issue)
 
     assert events.any?, "Expected events to be emitted"
+  end
+
+  test "returns render error when template is invalid" do
+    agent = MockAgent.new(turn_results: [])
+    tracker = Symphony::Trackers::Memory.new(issues: [ @issue ])
+
+    runner = Symphony::AgentRunner.new(
+      workspace: @workspace, agent: agent, config: @config,
+      tracker: tracker, prompt_template: "{{ unknown_var }}"
+    )
+
+    result = runner.run(issue: @issue)
+    assert_equal :prompt_render_failed, result[:error]
   end
 
   # Minimal mock agent for unit testing AgentRunner

@@ -5,7 +5,7 @@ class CliLifecycleTest < ActiveSupport::TestCase
   # SPEC 17.7.1: CLI accepts optional positional workflow path argument
   test "bin/symphony parses positional workflow path" do
     script = File.read(Rails.root.join("bin/symphony"))
-    assert_includes script, "ARGV[0]"
+    assert_includes script, "workflow_path ||= arg"
   end
 
   # SPEC 17.7.2: CLI uses ./WORKFLOW.md when no argument provided
@@ -30,5 +30,11 @@ class CliLifecycleTest < ActiveSupport::TestCase
   test "bin/symphony supports --logs-root flag" do
     script = File.read(Rails.root.join("bin/symphony"))
     assert_includes script, "--logs-root"
+  end
+
+  test "bin/symphony parses flags before positional workflow path" do
+    script = File.read(Rails.root.join("bin/symphony"))
+    assert_includes script, "workflow_path = nil"
+    assert_includes script, "elsif !arg.start_with?(\"--\")"
   end
 end

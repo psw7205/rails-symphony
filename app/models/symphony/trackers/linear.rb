@@ -60,11 +60,16 @@ module Symphony
         @api_key = api_key
         @endpoint = endpoint
         @project_slug = project_slug
-        @conn = Faraday.new(url: endpoint) do |f|
-          f.request :json
-          f.response :json
-          f.options.timeout = 30
-        end
+        build_connection
+      end
+
+      def reconfigure(api_key:, endpoint:, project_slug:)
+        endpoint_changed = @endpoint != endpoint
+        @api_key = api_key
+        @endpoint = endpoint
+        @project_slug = project_slug
+        build_connection if endpoint_changed
+        :ok
       end
 
       def fetch_candidate_issues(active_states:)
@@ -76,7 +81,7 @@ module Symphony
 
         result = graphql(IDS_QUERY, {
           ids: ids.uniq,
-          first: [ids.length, ISSUE_PAGE_SIZE].min,
+          first: [ ids.length, ISSUE_PAGE_SIZE ].min,
           relationFirst: ISSUE_PAGE_SIZE
         })
         return result if result[:error]
@@ -90,6 +95,14 @@ module Symphony
       end
 
       private
+
+        def build_connection
+          @conn = Faraday.new(url: @endpoint) do |f|
+          f.request :json
+          f.response :json
+          f.options.timeout = 30
+          end
+        end
 
         def fetch_paginated(state_names, after_cursor = nil, acc = [])
           result = graphql(POLL_QUERY, {
@@ -110,7 +123,9 @@ module Symphony
           all_issues = acc + page_issues
 
           page_info = issues_data["pageInfo"] || {}
-          if page_info["hasNextPage"] && page_info["endCursor"]
+          if page_info["hasNextPage"] && page_info["endCursor"].nil?
+            { error: :linear_missing_end_cursor }
+          elsif page_info["hasNextPage"]
             fetch_paginated(state_names, page_info["endCursor"], all_issues)
           else
             { ok: true, issues: all_issues }

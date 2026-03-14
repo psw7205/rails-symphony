@@ -3,7 +3,7 @@ require "tempfile"
 
 class Symphony::WorkflowStoreTest < ActiveSupport::TestCase
   setup do
-    @file = Tempfile.new(["workflow", ".md"])
+    @file = Tempfile.new([ "workflow", ".md" ])
     @file.write("---\ntracker:\n  kind: linear\n---\nOriginal prompt")
     @file.close
     @store = Symphony::WorkflowStore.new(@file.path)
@@ -16,6 +16,7 @@ class Symphony::WorkflowStoreTest < ActiveSupport::TestCase
   test "loads workflow on init" do
     assert_equal "linear", @store.config.dig("tracker", "kind")
     assert_equal "Original prompt", @store.prompt_template
+    assert_nil @store.last_error
   end
 
   test "returns ServiceConfig instance" do
@@ -33,6 +34,7 @@ class Symphony::WorkflowStoreTest < ActiveSupport::TestCase
     File.write(@file.path, "---\n- not a map\n---\nbad")
     @store.reload_if_changed!
     assert_equal "Original prompt", @store.prompt_template
+    assert_equal :workflow_front_matter_not_a_map, @store.last_error
   end
 
   test "force_reload always reloads" do

@@ -25,6 +25,8 @@ module Symphony
     # Main poll tick (SPEC 8.1)
     def tick
       @mutex.synchronize do
+        @workflow_store.reload_if_changed!
+        apply_runtime_config
         reconcile_running_issues
         return unless validate_dispatch_config
 
@@ -69,8 +71,11 @@ module Symphony
 
         result = @tracker.fetch_candidate_issues(active_states: config.active_states)
         unless result[:ok]
-          Rails.logger.warn("[Orchestrator] Retry fetch failed for #{issue_id}, releasing")
-          return release_claim(issue_id)
+          next_attempt = (entry[:attempt] || 0) + 1
+          delay = failure_backoff_ms(next_attempt)
+          Rails.logger.warn("[Orchestrator] Retry fetch failed for #{issue_id}, requeueing")
+          return schedule_retry(issue_id, entry[:identifier], attempt: next_attempt, delay_ms: delay,
+                               error: "retry fetch failed")
         end
 
         issue = result[:issues].find { |i| i.id == issue_id }
@@ -81,8 +86,9 @@ module Symphony
         if dispatch_slots_available?(issue.state)
           do_dispatch(issue, attempt: entry[:attempt])
         else
-          schedule_retry(issue_id, entry[:identifier], attempt: entry[:attempt],
-                         delay_ms: failure_backoff_ms(entry[:attempt]), error: "no available orchestrator slots")
+          next_attempt = (entry[:attempt] || 0) + 1
+          schedule_retry(issue_id, entry[:identifier], attempt: next_attempt,
+                         delay_ms: failure_backoff_ms(next_attempt), error: "no available orchestrator slots")
         end
       end
     end
@@ -97,15 +103,14 @@ module Symphony
         entry[:session_id] = event[:session_id] if event[:session_id]
         entry[:thread_id] = event[:thread_id] if event[:thread_id]
         entry[:turn_id] = event[:turn_id] if event[:turn_id]
+        entry[:codex_app_server_pid] = event[:codex_app_server_pid] if event[:codex_app_server_pid]
 
         if event[:rate_limits]
           @codex_rate_limits = event[:rate_limits]
         end
 
         if event[:usage]
-          @codex_totals[:input_tokens] += (event[:usage][:input_tokens] || 0)
-          @codex_totals[:output_tokens] += (event[:usage][:output_tokens] || 0)
-          @codex_totals[:total_tokens] += (event[:usage][:total_tokens] || 0)
+          apply_usage_delta!(entry, event[:usage])
           persist_codex_totals
         end
       end
@@ -188,6 +193,7 @@ module Symphony
             elapsed = now - (reference.is_a?(Time) ? reference.to_f * 1000 : reference)
             if elapsed > stall_timeout
               Rails.logger.warn("[Orchestrator] Stall detected for #{issue_id}, elapsed=#{elapsed.round}ms")
+              request_worker_stop(entry)
               @running.delete(issue_id)
               schedule_retry(issue_id, entry[:identifier], attempt: (entry[:attempt] || 0) + 1,
                              delay_ms: failure_backoff_ms((entry[:attempt] || 0) + 1), error: "stall_timeout")
@@ -217,13 +223,14 @@ module Symphony
           state = issue&.state.to_s.strip.downcase
 
           if issue.nil? || terminal.include?(state)
+            request_worker_stop(entry)
             @running.delete(issue_id)
             @workspace.remove(entry[:identifier]) if issue && terminal.include?(state)
             release_claim(issue_id)
           elsif active.include?(state)
             # Still active, update snapshot
           else
-            # Non-active, non-terminal
+            request_worker_stop(entry)
             @running.delete(issue_id)
             release_claim(issue_id)
           end
@@ -231,6 +238,11 @@ module Symphony
       end
 
       def validate_dispatch_config
+        if @workflow_store.respond_to?(:last_error) && @workflow_store.last_error
+          Rails.logger.warn("[Orchestrator] Workflow reload error present: #{@workflow_store.last_error}")
+          return false
+        end
+
         result = config.validate!
         if result != :ok
           Rails.logger.warn("[Orchestrator] Config validation failed: #{result[:messages]&.join(', ')}")
@@ -241,7 +253,7 @@ module Symphony
 
       def sort_for_dispatch(issues)
         issues.sort_by do |i|
-          [i.priority || 999, i.created_at || Time.at(0), i.identifier.to_s]
+          [ i.priority || 999, i.created_at || Time.at(0), i.identifier.to_s ]
         end
       end
 
@@ -265,6 +277,10 @@ module Symphony
           wall_started_at: Time.now.utc.iso8601,
           last_codex_event: nil,
           last_codex_timestamp: nil,
+          codex_app_server_pid: nil,
+          last_reported_input_tokens: 0,
+          last_reported_output_tokens: 0,
+          last_reported_total_tokens: 0,
           attempt: attempt
         }
 
@@ -323,7 +339,54 @@ module Symphony
 
       def failure_backoff_ms(attempt)
         base = 10_000 * (2**(attempt - 1))
-        [base, config.max_retry_backoff_ms].min
+        [ base, config.max_retry_backoff_ms ].min
+      end
+
+      def apply_runtime_config
+        cfg = config
+
+        if @workspace.respond_to?(:reconfigure)
+          @workspace.reconfigure(
+            root: cfg.workspace_root,
+            hooks: cfg.hooks,
+            hooks_timeout_ms: cfg.hooks_timeout_ms
+          )
+        end
+
+        if @tracker.respond_to?(:reconfigure) && cfg.tracker_kind == "linear"
+          @tracker.reconfigure(
+            api_key: cfg.tracker_api_key,
+            endpoint: cfg.tracker_endpoint,
+            project_slug: cfg.tracker_project_slug
+          )
+        end
+      end
+
+      def apply_usage_delta!(entry, usage)
+        input_total = usage[:input_tokens].to_i
+        output_total = usage[:output_tokens].to_i
+        all_total = usage[:total_tokens].to_i
+
+        input_delta = [ input_total - entry[:last_reported_input_tokens].to_i, 0 ].max
+        output_delta = [ output_total - entry[:last_reported_output_tokens].to_i, 0 ].max
+        total_delta = [ all_total - entry[:last_reported_total_tokens].to_i, 0 ].max
+
+        @codex_totals[:input_tokens] += input_delta
+        @codex_totals[:output_tokens] += output_delta
+        @codex_totals[:total_tokens] += total_delta
+
+        entry[:last_reported_input_tokens] = input_total
+        entry[:last_reported_output_tokens] = output_total
+        entry[:last_reported_total_tokens] = all_total
+      end
+
+      def request_worker_stop(entry)
+        pid = entry[:codex_app_server_pid]
+        return unless pid
+
+        Process.kill("TERM", pid)
+      rescue Errno::ESRCH, Errno::EPERM, TypeError
+        nil
       end
   end
 end

@@ -12,9 +12,9 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
   end
 
   test "fetch_candidate_issues returns normalized issues" do
-    stub_linear_poll([make_linear_node("id1", "MT-1", "Fix bug", "Todo", priority: 1)])
+    stub_linear_poll([ make_linear_node("id1", "MT-1", "Fix bug", "Todo", priority: 1) ])
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     assert result[:ok]
     assert_equal 1, result[:issues].length
 
@@ -29,7 +29,7 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
     page1_body = {
       data: {
         issues: {
-          nodes: [make_linear_node("id1", "MT-1", "First", "Todo")],
+          nodes: [ make_linear_node("id1", "MT-1", "First", "Todo") ],
           pageInfo: { hasNextPage: true, endCursor: "cursor1" }
         }
       }
@@ -37,7 +37,7 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
     page2_body = {
       data: {
         issues: {
-          nodes: [make_linear_node("id2", "MT-2", "Second", "Todo")],
+          nodes: [ make_linear_node("id2", "MT-2", "Second", "Todo") ],
           pageInfo: { hasNextPage: false, endCursor: nil }
         }
       }
@@ -49,10 +49,27 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
         { status: 200, body: page2_body.to_json, headers: { "Content-Type" => "application/json" } }
       )
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     assert result[:ok]
     assert_equal 2, result[:issues].length
     assert_equal %w[MT-1 MT-2], result[:issues].map(&:identifier)
+  end
+
+  test "returns error when hasNextPage is true without endCursor" do
+    body = {
+      data: {
+        issues: {
+          nodes: [ make_linear_node("id1", "MT-1", "First", "Todo") ],
+          pageInfo: { hasNextPage: true, endCursor: nil }
+        }
+      }
+    }
+
+    stub_request(:post, @endpoint)
+      .to_return(status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" })
+
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
+    assert_equal :linear_missing_end_cursor, result[:error]
   end
 
   test "fetch_issue_states_by_ids returns matching issues" do
@@ -70,7 +87,7 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
     stub_request(:post, @endpoint)
       .to_return(status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" })
 
-    result = @tracker.fetch_issue_states_by_ids(["id1", "id2"])
+    result = @tracker.fetch_issue_states_by_ids([ "id1", "id2" ])
     assert result[:ok]
     assert_equal 2, result[:issues].length
   end
@@ -83,12 +100,12 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
 
   test "normalizes labels to lowercase" do
     node = make_linear_node("id1", "MT-1", "Bug", "Todo")
-    node[:labels] = { nodes: [{ name: "Bug" }, { name: "URGENT" }] }
+    node[:labels] = { nodes: [ { name: "Bug" }, { name: "URGENT" } ] }
 
-    stub_linear_poll([node])
+    stub_linear_poll([ node ])
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
-    assert_equal ["bug", "urgent"], result[:issues].first.labels
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
+    assert_equal [ "bug", "urgent" ], result[:issues].first.labels
   end
 
   test "extracts blockers from inverseRelations" do
@@ -100,9 +117,9 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
       ]
     }
 
-    stub_linear_poll([node])
+    stub_linear_poll([ node ])
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     blockers = result[:issues].first.blocked_by
     assert_equal 1, blockers.length
     assert_equal "b1", blockers.first["id"]
@@ -113,23 +130,23 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
     stub_request(:post, @endpoint)
       .to_return(status: 401, body: "Unauthorized")
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     assert_equal :linear_api_status, result[:error]
   end
 
   test "handles GraphQL errors" do
-    body = { errors: [{ message: "Something went wrong" }] }
+    body = { errors: [ { message: "Something went wrong" } ] }
     stub_request(:post, @endpoint)
       .to_return(status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" })
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     assert_equal :linear_graphql_errors, result[:error]
   end
 
   test "handles transport error" do
     stub_request(:post, @endpoint).to_timeout
 
-    result = @tracker.fetch_candidate_issues(active_states: ["Todo"])
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
     assert_equal :linear_transport_error, result[:error]
   end
 
