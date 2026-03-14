@@ -24,7 +24,7 @@ module Api
           status: running ? "running" : "retrying",
           workspace: { path: Symphony.workspace&.workspace_path(identifier) },
           attempts: {
-            restart_count: [(retrying&.dig(:attempt) || 0) - 1, 0].max,
+            restart_count: [ (retrying&.dig(:attempt) || 0) - 1, 0 ].max,
             current_retry_attempt: retrying&.dig(:attempt) || 0
           },
           running: running,

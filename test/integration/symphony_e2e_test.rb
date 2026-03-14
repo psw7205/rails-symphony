@@ -92,7 +92,7 @@ class SymphonyE2eTest < ActiveSupport::TestCase
     blocked = Symphony::Issue.new(
       id: "ISS-3", identifier: "PROJ-3", title: "Blocked todo",
       state: "Todo", priority: 1, created_at: Time.now.utc,
-      blocked_by: [{ "id" => "ISS-4", "identifier" => "PROJ-4", "state" => "In Progress" }]
+      blocked_by: [ { "id" => "ISS-4", "identifier" => "PROJ-4", "state" => "In Progress" } ]
     )
     unblocked = Symphony::Issue.new(
       id: "ISS-5", identifier: "PROJ-5", title: "Free todo",
@@ -115,7 +115,7 @@ class SymphonyE2eTest < ActiveSupport::TestCase
     orchestrator.tick
 
     # Only unblocked issue dispatched
-    assert_equal ["ISS-5"], @dispatched
+    assert_equal [ "ISS-5" ], @dispatched
   end
 
   test "reconciliation removes terminal issues from running" do
@@ -174,7 +174,7 @@ class SymphonyE2eTest < ActiveSupport::TestCase
   end
 
   test "agent runner with mock agent completes turn loop" do
-    mock_agent = MockAgent.new(turn_results: [{ ok: true }])
+    mock_agent = MockAgent.new(turn_results: [ { ok: true } ])
 
     workspace = Symphony::Workspace.new(root: @workspace_root)
     config = @store.service_config

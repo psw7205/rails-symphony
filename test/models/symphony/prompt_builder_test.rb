@@ -24,7 +24,7 @@ class Symphony::PromptBuilderTest < ActiveSupport::TestCase
 
   test "renders labels array" do
     template = "Labels: {{ issue.labels | join: ', ' }}"
-    issue = Symphony::Issue.new(id: "1", identifier: "MT-1", title: "t", state: "Todo", labels: ["bug", "urgent"])
+    issue = Symphony::Issue.new(id: "1", identifier: "MT-1", title: "t", state: "Todo", labels: [ "bug", "urgent" ])
     result = Symphony::PromptBuilder.render(template, issue: issue)
     assert_equal "Labels: bug, urgent", result
   end

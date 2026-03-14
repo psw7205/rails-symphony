@@ -14,7 +14,7 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
     Symphony.orchestrator = Symphony::Orchestrator.new(
       tracker: tracker, workspace: workspace, agent: nil,
       workflow_store: store,
-      on_dispatch: ->(_issue, _attempt) {}
+      on_dispatch: ->(_issue, _attempt) { }
     )
   end
 

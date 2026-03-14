@@ -87,7 +87,7 @@ class ObservabilityTest < ActiveSupport::TestCase
     orchestrator = Symphony::Orchestrator.new(
       tracker: tracker, workspace: workspace, agent: nil,
       workflow_store: store,
-      on_dispatch: ->(_issue, _attempt) {}
+      on_dispatch: ->(_issue, _attempt) { }
     )
 
     orchestrator.tick

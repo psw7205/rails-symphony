@@ -23,7 +23,7 @@ class Symphony::WorkflowTest < ActiveSupport::TestCase
   end
 
   test "loads from file path" do
-    file = Tempfile.new(["workflow", ".md"])
+    file = Tempfile.new([ "workflow", ".md" ])
     file.write("---\ntracker:\n  kind: linear\n---\nHello {{ issue.title }}")
     file.close
     result = Symphony::Workflow.load(file.path)

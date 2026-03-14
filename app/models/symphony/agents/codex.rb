@@ -117,7 +117,7 @@ module Symphony
           buffer = +""
 
           while Time.now < deadline
-            ready = IO.select([session[:stdout]], nil, nil, 0.1)
+            ready = IO.select([ session[:stdout] ], nil, nil, 0.1)
             next unless ready
 
             chunk = session[:stdout].read_nonblock(65536) rescue nil
@@ -155,7 +155,7 @@ module Symphony
               return { event: :process_exit, details: status, exit_code: status&.exitstatus }
             end
 
-            ready = IO.select([session[:stdout]], nil, nil, 0.5)
+            ready = IO.select([ session[:stdout] ], nil, nil, 0.5)
             next unless ready
 
             chunk = begin
@@ -299,7 +299,7 @@ module Symphony
             "method" => "turn/start",
             "params" => {
               "threadId" => session[:thread_id],
-              "input" => [{ "type" => "text", "text" => prompt }],
+              "input" => [ { "type" => "text", "text" => prompt } ],
               "cwd" => session[:workspace],
               "title" => "#{issue.identifier}: #{issue.title}",
               "approvalPolicy" => session[:approval_policy],

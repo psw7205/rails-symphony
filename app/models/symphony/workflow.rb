@@ -18,7 +18,7 @@ module Symphony
         yaml_str = parts[1] || ""
         body = parts[2] || ""
 
-        config = YAML.safe_load(yaml_str, permitted_classes: [Symbol]) || {}
+        config = YAML.safe_load(yaml_str, permitted_classes: [ Symbol ]) || {}
         unless config.is_a?(Hash)
           return { error: :workflow_front_matter_not_a_map }
         end

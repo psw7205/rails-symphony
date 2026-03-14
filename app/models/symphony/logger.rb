@@ -1,7 +1,7 @@
 module Symphony
   module Logger
     def self.with_issue(issue, &block)
-      tags = ["issue_id=#{issue.id || 'n/a'}", "issue_identifier=#{issue.identifier || 'n/a'}"]
+      tags = [ "issue_id=#{issue.id || 'n/a'}", "issue_identifier=#{issue.identifier || 'n/a'}" ]
       Rails.logger.tagged(*tags, &block)
     end
 
