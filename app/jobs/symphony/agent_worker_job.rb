@@ -3,7 +3,7 @@ module Symphony
     queue_as :symphony_agents
 
     def perform(issue_id:, issue_identifier:, issue_title:, issue_state:, attempt: nil)
-      issue = Issue.new(id: issue_id, identifier: issue_identifier, title: issue_title, state: issue_state)
+      issue = restore_issue(issue_id, issue_identifier, issue_title, issue_state)
 
       runner = AgentRunner.new(
         tracker: Symphony.tracker,
@@ -26,5 +26,22 @@ module Symphony
         )
       end
     end
+
+    private
+
+      def restore_issue(issue_id, issue_identifier, issue_title, issue_state)
+        pi = PersistedIssue.find_by(id: issue_id)
+        if pi
+          Issue.new(
+            id: pi.id, identifier: pi.identifier, title: pi.title,
+            description: pi.description, priority: pi.priority, state: pi.state,
+            branch_name: pi.branch_name, url: pi.url,
+            labels: pi.labels || [], blocked_by: pi.blocked_by || [],
+            created_at: pi.created_at, updated_at: pi.updated_at
+          )
+        else
+          Issue.new(id: issue_id, identifier: issue_identifier, title: issue_title, state: issue_state)
+        end
+      end
   end
 end

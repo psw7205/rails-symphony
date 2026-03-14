@@ -2,7 +2,7 @@ module Symphony
   class Orchestrator
     include Orchestrator::Persistable
 
-    attr_reader :running, :claimed, :retry_attempts
+    attr_reader :running, :claimed, :retry_attempts, :completed
 
     def initialize(tracker:, workspace:, agent:, workflow_store:, on_dispatch: nil)
       @tracker = tracker
@@ -13,6 +13,7 @@ module Symphony
       @running = {}     # issue_id => RunningEntry
       @claimed = Set.new
       @retry_attempts = {} # issue_id => RetryEntry
+      @completed = Set.new # SPEC 4.1.8: bookkeeping only
       @codex_totals = { input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0.0 }
       @codex_rate_limits = nil
       @mutex = Mutex.new
@@ -46,6 +47,7 @@ module Symphony
       @mutex.synchronize do
         accumulate_runtime(issue_id)
         @running.delete(issue_id)
+        @completed.add(issue_id)
         persist_worker_exit(issue_id, status: "completed")
         schedule_retry(issue_id, issue_identifier, attempt: 1, delay_ms: 1000)
       end
@@ -104,6 +106,8 @@ module Symphony
         entry[:thread_id] = event[:thread_id] if event[:thread_id]
         entry[:turn_id] = event[:turn_id] if event[:turn_id]
         entry[:codex_app_server_pid] = event[:codex_app_server_pid] if event[:codex_app_server_pid]
+        entry[:last_codex_message] = event[:message] if event[:message]
+        entry[:turn_count] = (entry[:turn_count] || 0) + 1 if event[:event] == :session_started
 
         if event[:rate_limits]
           @codex_rate_limits = event[:rate_limits]
@@ -132,11 +136,18 @@ module Symphony
             issue_identifier: entry[:identifier],
             state: entry[:issue]&.state,
             session_id: entry[:session_id],
+            turn_count: entry[:turn_count] || 0,
             started_at: entry[:wall_started_at],
-            last_codex_event: entry[:last_codex_event],
-            last_codex_timestamp: entry[:last_codex_timestamp],
+            last_event: entry[:last_codex_event],
+            last_message: entry[:last_codex_message],
+            last_event_at: entry[:last_codex_timestamp],
             elapsed_seconds: elapsed_s.round(1),
-            attempt: entry[:attempt]
+            attempt: entry[:attempt],
+            tokens: {
+              input_tokens: entry[:last_reported_input_tokens] || 0,
+              output_tokens: entry[:last_reported_output_tokens] || 0,
+              total_tokens: entry[:last_reported_total_tokens] || 0
+            }
           }
         end
 
@@ -228,7 +239,7 @@ module Symphony
             @workspace.remove(entry[:identifier]) if issue && terminal.include?(state)
             release_claim(issue_id)
           elsif active.include?(state)
-            # Still active, update snapshot
+            entry[:issue] = issue
           else
             request_worker_stop(entry)
             @running.delete(issue_id)
@@ -260,12 +271,17 @@ module Symphony
       def dispatch_eligible(candidates)
         candidates.each do |issue|
           break unless global_slots_available?
+          next unless issue_dispatchable?(issue)
           next if @claimed.include?(issue.id) || @running.key?(issue.id)
           next unless dispatch_slots_available?(issue.state)
           next if blocked_todo?(issue)
 
           do_dispatch(issue)
         end
+      end
+
+      def issue_dispatchable?(issue)
+        issue.id && issue.identifier && issue.title && issue.state
       end
 
       def do_dispatch(issue, attempt: nil)
@@ -277,10 +293,12 @@ module Symphony
           wall_started_at: Time.now.utc.iso8601,
           last_codex_event: nil,
           last_codex_timestamp: nil,
+          last_codex_message: nil,
           codex_app_server_pid: nil,
           last_reported_input_tokens: 0,
           last_reported_output_tokens: 0,
           last_reported_total_tokens: 0,
+          turn_count: 0,
           attempt: attempt
         }
 
