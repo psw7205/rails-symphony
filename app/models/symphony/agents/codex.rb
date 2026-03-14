@@ -151,7 +151,8 @@ module Symphony
           while Time.now < deadline
             # Check if process exited
             unless session[:wait_thread].alive?
-              return { event: :process_exit, details: session[:wait_thread].value }
+              status = session[:wait_thread].value
+              return { event: :process_exit, details: status, exit_code: status&.exitstatus }
             end
 
             ready = IO.select([session[:stdout]], nil, nil, 0.5)
@@ -189,6 +190,9 @@ module Symphony
               when "turn/cancelled"
                 emit(on_message, :turn_cancelled, { payload: parsed }, session)
                 return { event: :turn_cancelled, details: parsed["params"] }
+              when "user_input_required"
+                emit(on_message, :turn_input_required, { payload: parsed }, session)
+                return { event: :turn_failed, details: { reason: "user_input_required" } }
               else
                 handle_stream_message(session, parsed, on_message)
               end
@@ -206,8 +210,6 @@ module Symphony
             handle_approval(session, parsed, on_message)
           when "item/tool/call"
             handle_tool_call(session, parsed, on_message)
-          when "user_input_required"
-            emit(on_message, :turn_input_required, { payload: parsed }, session)
           else
             emit(on_message, :notification, { method: method, payload: parsed }, session)
           end

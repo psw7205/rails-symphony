@@ -94,6 +94,9 @@ module Symphony
         return unless entry
         entry[:last_codex_event] = event[:event]
         entry[:last_codex_timestamp] = event[:timestamp] || Time.now.utc
+        entry[:session_id] = event[:session_id] if event[:session_id]
+        entry[:thread_id] = event[:thread_id] if event[:thread_id]
+        entry[:turn_id] = event[:turn_id] if event[:turn_id]
 
         if event[:rate_limits]
           @codex_rate_limits = event[:rate_limits]
@@ -123,6 +126,7 @@ module Symphony
             issue_id: issue_id,
             issue_identifier: entry[:identifier],
             state: entry[:issue]&.state,
+            session_id: entry[:session_id],
             started_at: entry[:wall_started_at],
             last_codex_event: entry[:last_codex_event],
             last_codex_timestamp: entry[:last_codex_timestamp],

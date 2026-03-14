@@ -40,7 +40,11 @@ module Symphony
       on_dispatch: method(:dispatch_agent_worker)
     )
 
-    # 5. Restore persisted state
+    # 5. Configure HTTP server port (SPEC 13.7)
+    effective_port = port || cfg.server_port
+    ENV["PORT"] = effective_port.to_s if effective_port
+
+    # 6. Restore persisted state
     orchestrator.restore_from_db!
 
     # 6. Start file watcher
@@ -65,6 +69,8 @@ module Symphony
         endpoint: cfg.tracker_endpoint,
         project_slug: cfg.tracker_project_slug
       )
+    when "memory"
+      Trackers::Memory.new
     else
       raise "Unsupported tracker kind: #{cfg.tracker_kind}"
     end
@@ -106,10 +112,10 @@ module Symphony
   end
 
   def self.start_poll_loop(interval_ms)
-    interval_sec = interval_ms / 1000.0
-    Rails.logger.info("[Symphony] Starting poll loop (interval=#{interval_sec}s)")
+    Rails.logger.info("[Symphony] Starting poll loop (interval=#{interval_ms / 1000.0}s)")
 
     loop do
+      interval_sec = (config&.poll_interval_ms || interval_ms) / 1000.0
       sleep(interval_sec)
       orchestrator.tick
 
