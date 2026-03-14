@@ -75,9 +75,9 @@ AgentWorkerJob
 ## 참고
 
 - [OpenAI Symphony](https://github.com/openai/symphony) — 원본 프로젝트
-- [Symphony SPEC](symphony/SPEC.md)
+- [Symphony SPEC](https://github.com/openai/symphony/blob/main/SPEC.md)
 - [설계 문서](docs/plans/2026-03-05-symphony-rails-design.md)
-- [Elixir 참조 구현](symphony/elixir/)
+- [Elixir 참조 구현](https://github.com/openai/symphony/tree/main/elixir)
 
 ## 라이선스
 

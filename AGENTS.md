@@ -11,7 +11,7 @@ Rails 8 + SQLite + Solid Queue 기반 Symphony 구현체.
 ## Codebase-Specific Conventions
 
 - Runtime config is loaded from `WORKFLOW.md` front matter via `Symphony::Workflow` and `Symphony::ServiceConfig`.
-- Keep the implementation aligned with [`symphony/SPEC.md`](symphony/SPEC.md) where practical.
+- Keep the implementation aligned with [`Symphony SPEC`](https://github.com/openai/symphony/blob/main/SPEC.md) where practical.
   - The implementation may be a superset of the spec.
   - The implementation must not conflict with the spec.
   - If implementation changes meaningfully alter the intended behavior, update the spec in the same
