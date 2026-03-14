@@ -51,6 +51,41 @@ AgentWorkerJob
 
 **Agents::Base** — 세션 시작/종료, 턴 실행, 이벤트 스트리밍
 
+## 셋업
+
+```bash
+bin/setup --skip-server   # 의존성 설치 + DB 준비
+```
+
+`bin/symphony` 실행 전, 대상 저장소(또는 현재 디렉토리)에 `WORKFLOW.md`가 있어야 합니다.
+
+## 실행
+
+```bash
+bin/symphony [WORKFLOW.md 경로] [--logs-root DIR] [--port PORT]
+```
+
+- `WORKFLOW.md` 경로 생략 시 현재 디렉토리의 `WORKFLOW.md`를 자동 탐색
+- `--port` 미지정 시 `WORKFLOW.md`의 `server.port`를 사용하고, 둘 다 없으면 Rails 기본 포트를 사용
+- `Symphony.boot!`가 호출되어 오케스트레이터/파일 감시/폴링 루프를 함께 기동
+
+## WORKFLOW.md 구조
+
+YAML front matter + Liquid 템플릿 본문으로 구성된 단일 파일 설정.
+
+**YAML front matter** — tracker, workspace, agent, codex, polling 설정을 정의.
+**본문** — Liquid 템플릿으로 `{{ issue.identifier }}`, `{{ issue.title }}` 등 이슈 변수를 바인딩하여 에이전트 프롬프트를 생성.
+
+참고 예시: `https://github.com/openai/symphony/blob/main/elixir/WORKFLOW.md`
+
+## 테스트
+
+```bash
+bin/rails test
+```
+
+`webmock` + `Trackers::Memory` 어댑터로 외부 의존성 없이 테스트 가능.
+
 ## 구현 범위
 
 ### 1차 (Core Conformance, SPEC 18.1)
@@ -66,11 +101,12 @@ AgentWorkerJob
 - 구조화 로그
 - CLI — `bin/symphony WORKFLOW.md`
 
-### 2차 (인터페이스만 준비)
+### 2차 (부분 구현)
 
 - Claude Code 어댑터
 - GitHub Issues 어댑터
-- HTTP JSON API / Turbo 대시보드
+- HTTP JSON API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/:issue_identifier`)
+- Turbo 대시보드 루트 페이지 (`/`)
 
 ## 참고
 
