@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+require_relative "../config/environment"
+
+workflow_path = ARGV[0] || File.join(Dir.pwd, "WORKFLOW.md")
+logs_root = nil
+
+ARGV.each_with_index do |arg, i|
+  if arg == "--logs-root" && ARGV[i + 1]
+    logs_root = ARGV[i + 1]
+  end
+end
+
+unless File.exist?(workflow_path)
+  $stderr.puts "Error: Workflow file not found: #{workflow_path}"
+  exit 1
+end
+
+Symphony.boot!(workflow_path: workflow_path, logs_root: logs_root)
