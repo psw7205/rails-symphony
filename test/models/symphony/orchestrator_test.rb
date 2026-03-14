@@ -127,7 +127,7 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
   # SPEC 17.4.12: Stall detection kills stalled sessions and schedules retry
   test "stall detection removes stalled entry and schedules retry" do
     workflow_file = File.join(@root, "WORKFLOW_STALL.md")
-    File.write(workflow_file, "---\ntracker:\n  kind: linear\n  api_key: test\n  project_slug: proj\nagent:\n  codex_stall_timeout_ms: 1\n---\nPrompt")
+    File.write(workflow_file, "---\ntracker:\n  kind: linear\n  api_key: test\n  project_slug: proj\ncodex:\n  stall_timeout_ms: 1\n---\nPrompt")
     store = Symphony::WorkflowStore.new(workflow_file)
 
     orch = Symphony::Orchestrator.new(

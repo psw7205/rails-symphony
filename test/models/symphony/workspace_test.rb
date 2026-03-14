@@ -83,4 +83,49 @@ class Symphony::WorkspaceTest < ActiveSupport::TestCase
     result = ws.run_after_run_hook("MT-42")
     assert_equal :ok, result
   end
+
+  # SPEC 17.2: Temporary artifacts removed during prep
+  test "removes tmp and .elixir_ls artifacts on existing workspace prep" do
+    ws = Symphony::Workspace.new(root: @root)
+    ws.prepare("MT-42")
+    path = ws.workspace_path("MT-42")
+
+    FileUtils.mkdir_p(File.join(path, "tmp"))
+    FileUtils.mkdir_p(File.join(path, ".elixir_ls"))
+    File.write(File.join(path, "tmp", "junk"), "data")
+
+    ws.prepare("MT-42")
+    refute Dir.exist?(File.join(path, "tmp"))
+    refute Dir.exist?(File.join(path, ".elixir_ls"))
+  end
+
+  # SPEC 17.2: Non-directory path at workspace location is handled safely
+  test "replaces non-directory file at workspace location" do
+    ws = Symphony::Workspace.new(root: @root)
+    file_path = File.join(@root, "MT-42")
+    File.write(file_path, "not a directory")
+
+    result = ws.prepare("MT-42")
+    assert result[:ok]
+    assert result[:created]
+    assert Dir.exist?(file_path)
+  end
+
+  # SPEC 17.2: before_remove hook runs on cleanup
+  test "runs before_remove hook on workspace removal" do
+    marker = File.join(@root, "remove_hook_ran")
+    ws = Symphony::Workspace.new(root: @root, hooks: { "before_remove" => "touch #{marker}" }, hooks_timeout_ms: 5000)
+    ws.prepare("MT-42")
+    ws.remove("MT-42")
+    assert File.exist?(marker)
+  end
+
+  # SPEC 17.2: before_remove hook failure is ignored
+  test "before_remove hook failure does not prevent removal" do
+    ws = Symphony::Workspace.new(root: @root, hooks: { "before_remove" => "exit 1" }, hooks_timeout_ms: 5000)
+    ws.prepare("MT-42")
+    path = ws.workspace_path("MT-42")
+    ws.remove("MT-42")
+    refute Dir.exist?(path)
+  end
 end
