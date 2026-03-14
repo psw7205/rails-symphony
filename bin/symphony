@@ -3,10 +3,13 @@ require_relative "../config/environment"
 
 workflow_path = ARGV[0] || File.join(Dir.pwd, "WORKFLOW.md")
 logs_root = nil
+port = nil
 
 ARGV.each_with_index do |arg, i|
   if arg == "--logs-root" && ARGV[i + 1]
     logs_root = ARGV[i + 1]
+  elsif arg == "--port" && ARGV[i + 1]
+    port = ARGV[i + 1].to_i
   end
 end
 
@@ -15,4 +18,4 @@ unless File.exist?(workflow_path)
   exit 1
 end
 
-Symphony.boot!(workflow_path: workflow_path, logs_root: logs_root)
+Symphony.boot!(workflow_path: workflow_path, logs_root: logs_root, port: port)

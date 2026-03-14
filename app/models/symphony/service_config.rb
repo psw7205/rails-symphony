@@ -62,6 +62,8 @@ module Symphony
     def codex_turn_timeout_ms = integer_value("codex", "turn_timeout_ms", 3_600_000)
     def codex_read_timeout_ms = integer_value("codex", "read_timeout_ms", 5_000)
     def codex_stall_timeout_ms = integer_value("codex", "stall_timeout_ms", 300_000)
+    def server_port = integer_value("server", "port", nil)
+
     def codex_approval_policy = dig("codex", "approval_policy")
     def codex_thread_sandbox = dig("codex", "thread_sandbox")
     def codex_turn_sandbox_policy = dig("codex", "turn_sandbox_policy")

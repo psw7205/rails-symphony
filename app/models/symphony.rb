@@ -5,7 +5,7 @@ module Symphony
     workflow_store&.service_config
   end
 
-  def self.boot!(workflow_path:, logs_root: nil)
+  def self.boot!(workflow_path:, logs_root: nil, port: nil)
     Rails.logger.info("[Symphony] Booting with workflow=#{workflow_path}")
 
     # 1. Load and validate workflow

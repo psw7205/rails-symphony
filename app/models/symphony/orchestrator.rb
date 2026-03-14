@@ -11,6 +11,8 @@ module Symphony
       @running = {}     # issue_id => RunningEntry
       @claimed = Set.new
       @retry_attempts = {} # issue_id => RetryEntry
+      @codex_totals = { input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0.0 }
+      @codex_rate_limits = nil
       @mutex = Mutex.new
     end
 
@@ -38,6 +40,7 @@ module Symphony
     # Called when a worker exits normally
     def on_worker_exit_normal(issue_id, issue_identifier)
       @mutex.synchronize do
+        accumulate_runtime(issue_id)
         @running.delete(issue_id)
         schedule_retry(issue_id, issue_identifier, attempt: 1, delay_ms: 1000)
       end
@@ -46,6 +49,7 @@ module Symphony
     # Called when a worker exits abnormally
     def on_worker_exit_abnormal(issue_id, issue_identifier, attempt:, error: nil)
       @mutex.synchronize do
+        accumulate_runtime(issue_id)
         @running.delete(issue_id)
         delay = failure_backoff_ms(attempt)
         schedule_retry(issue_id, issue_identifier, attempt: attempt, delay_ms: delay, error: error)
@@ -85,11 +89,79 @@ module Symphony
         return unless entry
         entry[:last_codex_event] = event[:event]
         entry[:last_codex_timestamp] = event[:timestamp] || Time.now.utc
+
+        if event[:rate_limits]
+          @codex_rate_limits = event[:rate_limits]
+        end
+
+        if event[:usage]
+          @codex_totals[:input_tokens] += (event[:usage][:input_tokens] || 0)
+          @codex_totals[:output_tokens] += (event[:usage][:output_tokens] || 0)
+          @codex_totals[:total_tokens] += (event[:usage][:total_tokens] || 0)
+        end
       end
     end
 
     def running_count
       @running.size
+    end
+
+    # SPEC 13.3: Synchronous runtime snapshot for dashboards/API
+    def snapshot
+      @mutex.synchronize do
+        now_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000
+
+        running_rows = @running.map do |issue_id, entry|
+          elapsed_s = (now_ms - entry[:started_at]) / 1000.0
+          {
+            issue_id: issue_id,
+            issue_identifier: entry[:identifier],
+            state: entry[:issue]&.state,
+            started_at: entry[:wall_started_at],
+            last_codex_event: entry[:last_codex_event],
+            last_codex_timestamp: entry[:last_codex_timestamp],
+            elapsed_seconds: elapsed_s.round(1),
+            attempt: entry[:attempt]
+          }
+        end
+
+        retry_rows = @retry_attempts.map do |issue_id, entry|
+          {
+            issue_id: issue_id,
+            issue_identifier: entry[:identifier],
+            attempt: entry[:attempt],
+            due_at: entry[:due_at]&.iso8601,
+            error: entry[:error]
+          }
+        end
+
+        active_elapsed = running_rows.sum { |r| r[:elapsed_seconds] }
+
+        {
+          generated_at: Time.now.utc.iso8601,
+          counts: { running: running_rows.size, retrying: retry_rows.size },
+          running: running_rows,
+          retrying: retry_rows,
+          codex_totals: {
+            input_tokens: @codex_totals[:input_tokens],
+            output_tokens: @codex_totals[:output_tokens],
+            total_tokens: @codex_totals[:total_tokens],
+            seconds_running: (@codex_totals[:seconds_running] + active_elapsed).round(1)
+          },
+          rate_limits: @codex_rate_limits
+        }
+      end
+    end
+
+    # SPEC 13.7.2: Trigger immediate poll+reconcile
+    def request_refresh
+      tick
+      {
+        queued: true,
+        coalesced: false,
+        requested_at: Time.now.utc.iso8601,
+        operations: %w[poll reconcile]
+      }
     end
 
     private
@@ -180,6 +252,7 @@ module Symphony
           identifier: issue.identifier,
           issue: issue,
           started_at: Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000,
+          wall_started_at: Time.now.utc.iso8601,
           last_codex_event: nil,
           last_codex_timestamp: nil,
           attempt: attempt
@@ -218,6 +291,14 @@ module Symphony
           error: error
         }
         @claimed.add(issue_id)
+      end
+
+      def accumulate_runtime(issue_id)
+        entry = @running[issue_id]
+        return unless entry
+        now_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000
+        elapsed_s = (now_ms - entry[:started_at]) / 1000.0
+        @codex_totals[:seconds_running] += elapsed_s
       end
 
       def release_claim(issue_id)
