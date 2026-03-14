@@ -72,9 +72,13 @@ module Symphony
     def validate!
       errors = []
       errors << "tracker.kind is required" unless tracker_kind
-      errors << "tracker.kind '#{tracker_kind}' is not supported" if tracker_kind && tracker_kind != "linear"
-      errors << "tracker.api_key is required" unless tracker_api_key
-      errors << "tracker.project_slug is required" unless tracker_project_slug
+      if tracker_kind && tracker_kind != "linear" && tracker_kind != "memory"
+        errors << "tracker.kind '#{tracker_kind}' is not supported"
+      end
+      if tracker_kind == "linear"
+        errors << "tracker.api_key is required" unless tracker_api_key
+        errors << "tracker.project_slug is required" unless tracker_project_slug
+      end
       errors << "codex.command is required" if codex_command.to_s.strip.empty?
 
       errors.empty? ? :ok : { error: :validation_error, messages: errors }

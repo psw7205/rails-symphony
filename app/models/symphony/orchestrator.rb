@@ -1,5 +1,7 @@
 module Symphony
   class Orchestrator
+    include Orchestrator::Persistable
+
     attr_reader :running, :claimed, :retry_attempts
 
     def initialize(tracker:, workspace:, agent:, workflow_store:, on_dispatch: nil)
@@ -42,6 +44,7 @@ module Symphony
       @mutex.synchronize do
         accumulate_runtime(issue_id)
         @running.delete(issue_id)
+        persist_worker_exit(issue_id, status: "completed")
         schedule_retry(issue_id, issue_identifier, attempt: 1, delay_ms: 1000)
       end
     end
@@ -51,6 +54,7 @@ module Symphony
       @mutex.synchronize do
         accumulate_runtime(issue_id)
         @running.delete(issue_id)
+        persist_worker_exit(issue_id, status: "failed", error: error)
         delay = failure_backoff_ms(attempt)
         schedule_retry(issue_id, issue_identifier, attempt: attempt, delay_ms: delay, error: error)
       end
@@ -60,6 +64,7 @@ module Symphony
     def on_retry_timer(issue_id)
       @mutex.synchronize do
         entry = @retry_attempts.delete(issue_id)
+        clear_persisted_retry(issue_id)
         return release_claim(issue_id) unless entry
 
         result = @tracker.fetch_candidate_issues(active_states: config.active_states)
@@ -98,6 +103,7 @@ module Symphony
           @codex_totals[:input_tokens] += (event[:usage][:input_tokens] || 0)
           @codex_totals[:output_tokens] += (event[:usage][:output_tokens] || 0)
           @codex_totals[:total_tokens] += (event[:usage][:total_tokens] || 0)
+          persist_codex_totals
         end
       end
     end
@@ -259,6 +265,7 @@ module Symphony
         }
 
         Rails.logger.info("[Orchestrator] Dispatching #{issue.identifier} (#{issue.id})")
+        persist_dispatch(issue, attempt)
         @on_dispatch&.call(issue, attempt)
       end
 
@@ -283,14 +290,16 @@ module Symphony
 
       def schedule_retry(issue_id, identifier, attempt:, delay_ms:, error: nil)
         @retry_attempts.delete(issue_id)
+        due_at = Time.now.utc + (delay_ms / 1000.0)
         @retry_attempts[issue_id] = {
           identifier: identifier,
           attempt: attempt,
           delay_ms: delay_ms,
-          due_at: Time.now.utc + (delay_ms / 1000.0),
+          due_at: due_at,
           error: error
         }
         @claimed.add(issue_id)
+        persist_retry(issue_id, identifier, attempt: attempt, due_at: due_at, error: error)
       end
 
       def accumulate_runtime(issue_id)
@@ -305,6 +314,7 @@ module Symphony
         @claimed.delete(issue_id)
         @retry_attempts.delete(issue_id)
         @running.delete(issue_id)
+        clear_persisted_retry(issue_id)
       end
 
       def failure_backoff_ms(attempt)

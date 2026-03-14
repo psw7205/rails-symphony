@@ -40,10 +40,13 @@ module Symphony
       on_dispatch: method(:dispatch_agent_worker)
     )
 
-    # 5. Start file watcher
+    # 5. Restore persisted state
+    orchestrator.restore_from_db!
+
+    # 6. Start file watcher
     start_file_watcher(workflow_path)
 
-    # 6. Run initial tick
+    # 7. Run initial tick
     orchestrator.tick
 
     Rails.logger.info("[Symphony] Boot complete. Polling every #{cfg.poll_interval_ms}ms")
