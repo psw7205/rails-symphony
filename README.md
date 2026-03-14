@@ -110,6 +110,8 @@ bin/rails test
 
 ## 참고
 
+- [운영 가이드](docs/guides/operator-guide.md) — 설정, 실행, 모니터링, 트러블슈팅
+- [기능 동작 레퍼런스](docs/guides/feature-reference.md) — 내부 동작 흐름, 상태 머신, 어댑터 확장
 - [OpenAI Symphony](https://github.com/openai/symphony) — 원본 프로젝트
 - [Symphony SPEC](https://github.com/openai/symphony/blob/main/SPEC.md)
 - [설계 문서](docs/plans/2026-03-05-symphony-rails-design.md)
