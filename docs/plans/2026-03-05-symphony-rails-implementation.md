@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rails 8, SQLite3, Solid Queue, Liquid (template), Faraday (HTTP), Listen (file watch)
 
-**Ref:** `symphony/SPEC.md`, `symphony/elixir/` (Elixir POC)
+**Ref:** https://github.com/openai/symphony/blob/main/SPEC.md, https://github.com/openai/symphony/tree/main/elixir (Elixir POC)
 
 ---
 

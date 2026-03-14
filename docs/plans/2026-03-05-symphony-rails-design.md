@@ -2,13 +2,13 @@
 
 Status: Approved
 Date: 2026-03-05
-Ref: `symphony/SPEC.md` (Draft v1)
+Ref: https://github.com/openai/symphony/blob/main/SPEC.md (Draft v1)
 
 ## Overview
 
 Rails 8 + SQLite + Solid Queue 기반 Symphony 구현.
 SPEC.md Section 18.1 (Core Conformance) 완전 준수가 1차 목표.
-Elixir POC(`symphony/elixir/`)를 참조 구현으로 활용.
+Elixir POC(https://github.com/openai/symphony/tree/main/elixir)를 참조 구현으로 활용.
 
 ## Decisions
 
