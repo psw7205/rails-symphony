@@ -1,0 +1,39 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">Edit project</h1>
+          <p class="hero-copy">Update this managed project.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <%= form_with model: @project, url: "/projects/#{@project.id}", method: :patch do |form| %>
+        <div>
+          <%= form.label :name %>
+          <%= form.text_field :name %>
+        </div>
+
+        <div>
+          <%= form.label :slug %>
+          <%= form.text_field :slug %>
+        </div>
+
+        <div>
+          <%= form.label :status %>
+          <%= form.select :status, Symphony::ManagedProject::STATUSES %>
+        </div>
+
+        <div>
+          <%= form.label :description %>
+          <%= form.text_area :description %>
+        </div>
+
+        <%= form.submit "Update project" %>
+      <% end %>
+    </section>
+  </section>
+</main>

@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "projects", to: "symphony/projects#index"
   get "projects/new", to: "symphony/projects#new"
   post "projects", to: "symphony/projects#create"
+  get "projects/:id/edit", to: "symphony/projects#edit"
+  patch "projects/:id", to: "symphony/projects#update"
   get "projects/:id", to: "symphony/projects#show"
   get "agent_connections/new", to: "symphony/agent_connections#new"
   post "agent_connections", to: "symphony/agent_connections#create"

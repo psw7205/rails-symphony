@@ -91,6 +91,32 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "GET /projects/:id/edit renders the project form" do
+    project = Symphony::ManagedProject.create!(name: "Editable Project", slug: "editable-project", status: "active")
+
+    get "/projects/#{project.id}/edit"
+    assert_response :success
+    assert_includes response.body, "Edit project"
+    assert_includes response.body, "Editable Project"
+  end
+
+  test "PATCH /projects/:id updates a managed project" do
+    project = Symphony::ManagedProject.create!(name: "Editable Project", slug: "editable-project", status: "active")
+
+    patch "/projects/#{project.id}", params: {
+      managed_project: {
+        name: "Updated Project",
+        slug: "updated-project",
+        status: "inactive",
+        description: "Updated from controller test"
+      }
+    }
+
+    assert_redirected_to "/projects/#{project.id}"
+    assert_equal "Updated Project", project.reload.name
+    assert_equal "inactive", project.status
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
