@@ -2,7 +2,9 @@ require "test_helper"
 
 class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
   setup do
-    @workflow_path = Rails.root.join("tmp", "test_persist_workflow.md")
+    @test_token = "#{Process.pid}-#{object_id}"
+    @workspace_root = Rails.root.join("tmp", "test_persist_ws_#{@test_token}")
+    @workflow_path = Rails.root.join("tmp", "test_persist_workflow_#{@test_token}.md")
     File.write(@workflow_path, <<~WORKFLOW)
       ---
       tracker:
@@ -18,7 +20,7 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
         model: o4-mini
         max_concurrent_agents: 3
       workspace:
-        root: #{Rails.root.join("tmp", "test_persist_ws")}
+        root: #{@workspace_root}
       codex:
         stall_timeout_ms: 0
       ---
@@ -27,7 +29,7 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
 
     store = Symphony::WorkflowStore.new(@workflow_path.to_s)
     tracker = Symphony::Trackers::Memory.new
-    workspace = Symphony::Workspace.new(root: Rails.root.join("tmp", "test_persist_ws").to_s)
+    workspace = Symphony::Workspace.new(root: @workspace_root.to_s)
     agent = Symphony::Agents::Base.new
 
     @dispatched = []
@@ -43,7 +45,7 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
 
   teardown do
     FileUtils.rm_f(@workflow_path)
-    FileUtils.rm_rf(Rails.root.join("tmp", "test_persist_ws"))
+    FileUtils.rm_rf(@workspace_root)
   end
 
   test "persist_dispatch creates PersistedIssue and RunAttempt" do
@@ -418,7 +420,7 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     def build_orchestrator(managed_workflow_id: nil)
       store = Symphony::WorkflowStore.new(@workflow_path.to_s)
       tracker = Symphony::Trackers::Memory.new
-      workspace = Symphony::Workspace.new(root: Rails.root.join("tmp", "test_persist_ws").to_s)
+      workspace = Symphony::Workspace.new(root: @workspace_root.to_s)
       agent = Symphony::Agents::Base.new
 
       Symphony::Orchestrator.new(
