@@ -115,6 +115,24 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "updated-workflow-workspaces", workflow.runtime_config["workspace"]["root"]
   end
 
+  test "PATCH /workflows/:id renders validation errors" do
+    workflow = build_managed_workflow
+
+    patch "/workflows/#{workflow.id}", params: {
+      managed_workflow: {
+        managed_project_id: "",
+        tracker_connection_id: "",
+        agent_connection_id: "",
+        name: "",
+        slug: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   test "GET /workflows/:id renders workflow retry rows" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
