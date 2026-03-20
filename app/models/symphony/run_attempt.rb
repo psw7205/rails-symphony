@@ -2,6 +2,7 @@ module Symphony
   class RunAttempt < ApplicationRecord
     self.table_name = "symphony_run_attempts"
 
+    belongs_to :managed_workflow, class_name: "Symphony::ManagedWorkflow", optional: true
     belongs_to :persisted_issue, class_name: "Symphony::PersistedIssue", foreign_key: :issue_id
     has_one :agent_session, class_name: "Symphony::AgentSession"
 
