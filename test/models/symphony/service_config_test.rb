@@ -74,6 +74,22 @@ class Symphony::ServiceConfigTest < ActiveSupport::TestCase
     assert_equal :ok, config.validate!
   end
 
+  test "validate! accepts database tracker config" do
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "database" }
+    })
+
+    assert_equal :ok, config.validate!
+  end
+
+  test "validate! accepts github tracker config" do
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "github" }
+    })
+
+    assert_equal :ok, config.validate!
+  end
+
   test "validate! returns error for missing tracker kind" do
     config = Symphony::ServiceConfig.new({})
     result = config.validate!

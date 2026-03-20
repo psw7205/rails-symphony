@@ -3,6 +3,7 @@ module Symphony
     DEFAULT_ACTIVE_STATES = [ "Todo", "In Progress" ].freeze
     DEFAULT_TERMINAL_STATES = [ "Closed", "Cancelled", "Canceled", "Duplicate", "Done" ].freeze
     DEFAULT_LINEAR_ENDPOINT = "https://api.linear.app/graphql".freeze
+    SUPPORTED_TRACKER_KINDS = %w[linear memory database github].freeze
 
     def initialize(config)
       @config = config || {}
@@ -73,7 +74,7 @@ module Symphony
     def validate!
       errors = []
       errors << "tracker.kind is required" unless tracker_kind
-      if tracker_kind && tracker_kind != "linear" && tracker_kind != "memory"
+      if tracker_kind && !SUPPORTED_TRACKER_KINDS.include?(tracker_kind)
         errors << "tracker.kind '#{tracker_kind}' is not supported"
       end
       if tracker_kind == "linear"
