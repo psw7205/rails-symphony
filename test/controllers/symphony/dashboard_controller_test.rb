@@ -20,6 +20,19 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "No active sessions."
   end
 
+  test "GET / does not depend on the legacy global orchestrator snapshot" do
+    Symphony.orchestrator = Object.new.tap do |orchestrator|
+      orchestrator.define_singleton_method(:snapshot) do
+        raise "legacy singleton snapshot should not be used"
+      end
+    end
+
+    get root_path
+    assert_response :success
+  ensure
+    Symphony.orchestrator = nil
+  end
+
   test "GET / renders managed workflow rows" do
     build_managed_workflow(slug: "dashboard-workflow-one", name: "Dashboard Workflow One")
     build_managed_workflow(slug: "dashboard-workflow-two", name: "Dashboard Workflow Two")
