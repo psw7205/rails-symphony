@@ -25,6 +25,18 @@
 
     <section class="metric-grid">
       <article class="metric-card">
+        <p class="metric-label">Projects</p>
+        <p class="metric-value numeric"><%= @console_snapshot[:project_count] %></p>
+        <p class="metric-detail">Managed projects currently configured in the admin console.</p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Active workflows</p>
+        <p class="metric-value numeric"><%= @console_snapshot[:active_workflow_count] %></p>
+        <p class="metric-detail">Managed workflows currently participating in the console snapshot.</p>
+      </article>
+
+      <article class="metric-card">
         <p class="metric-label">Running</p>
         <p class="metric-value numeric"><%= @snapshot[:counts][:running] %></p>
         <p class="metric-detail">Active issue sessions in the current runtime.</p>

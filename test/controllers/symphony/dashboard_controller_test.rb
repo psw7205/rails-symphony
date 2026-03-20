@@ -23,6 +23,8 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
+    assert_includes response.body, "Projects"
+    assert_includes response.body, "Active workflows"
     assert_includes response.body, "Dashboard Workflow One"
     assert_includes response.body, "Dashboard Workflow Two"
   end
