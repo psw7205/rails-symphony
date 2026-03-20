@@ -48,4 +48,21 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     assert_includes workflow.errors[:tracker_connection], "must exist"
     assert_includes workflow.errors[:agent_connection], "must exist"
   end
+
+  test "requires name, slug, and status" do
+    project = Symphony::ManagedProject.create!(name: "Platform", slug: "platform", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Linear", kind: "linear", status: "active")
+    agent_connection = Symphony::AgentConnection.create!(name: "Codex", kind: "codex", status: "active")
+
+    workflow = Symphony::ManagedWorkflow.new(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection
+    )
+
+    assert_not workflow.valid?
+    assert_includes workflow.errors[:name], "can't be blank"
+    assert_includes workflow.errors[:slug], "can't be blank"
+    assert_includes workflow.errors[:status], "can't be blank"
+  end
 end
