@@ -63,5 +63,39 @@
         </div>
       <% end %>
     </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Retry queue</h2>
+          <p class="section-copy">Current retry entries for this workflow.</p>
+        </div>
+      </div>
+
+      <% if @snapshot[:retrying].empty? %>
+        <p class="empty-state">No retry entries.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Attempt</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @snapshot[:retrying].each do |entry| %>
+                <tr>
+                  <td><%= entry[:issue_identifier] %></td>
+                  <td><%= entry[:attempt] %></td>
+                  <td><%= entry[:error] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
   </section>
 </main>

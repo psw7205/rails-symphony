@@ -27,6 +27,25 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "WS-1"
   end
 
+  test "GET /workflows/:id renders workflow retry rows" do
+    workflow = build_managed_workflow
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.send(
+      :persist_retry,
+      "workflow-retry-1",
+      "WR-1",
+      attempt: 2,
+      due_at: 5.minutes.from_now,
+      error: "process_died"
+    )
+    context.orchestrator.restore_from_db!
+
+    get "/workflows/#{workflow.id}"
+    assert_response :success
+    assert_includes response.body, "WR-1"
+    assert_includes response.body, "process_died"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
