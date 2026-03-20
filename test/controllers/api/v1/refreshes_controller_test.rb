@@ -38,4 +38,44 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
     post api_v1_refresh_path
     assert_response 503
   end
+
+  test "POST /api/v1/workflows/:workflow_id/refresh triggers the workflow refresh" do
+    workflow = build_managed_workflow
+
+    post "/api/v1/workflows/#{workflow.id}/refresh"
+    assert_response 202
+
+    body = JSON.parse(response.body)
+    assert body["queued"]
+    assert_includes body["operations"], "poll"
+    assert_includes body["operations"], "reconcile"
+  end
+
+  private
+    def build_managed_workflow
+      project = Symphony::ManagedProject.create!(name: "API Refresh Project", slug: "api-refresh-project", status: "active")
+      tracker_connection = Symphony::TrackerConnection.create!(
+        name: "API Refresh Memory",
+        kind: "memory",
+        status: "active",
+        config: {}
+      )
+      agent_connection = Symphony::AgentConnection.create!(
+        name: "API Refresh Codex",
+        kind: "codex",
+        status: "active",
+        config: { codex: { command: "bin/codex app-server" } }
+      )
+
+      Symphony::ManagedWorkflow.create!(
+        managed_project: project,
+        tracker_connection: tracker_connection,
+        agent_connection: agent_connection,
+        name: "API Refresh Workflow",
+        slug: "api-refresh-workflow",
+        status: "active",
+        prompt_template: "Refresh prompt",
+        runtime_config: { workspace: { root: "api-refresh-workspaces" } }
+      )
+    end
 end
