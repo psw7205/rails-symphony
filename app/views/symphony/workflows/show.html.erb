@@ -1,0 +1,67 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title"><%= @workflow.name %></h1>
+          <p class="hero-copy">Workflow runtime snapshot and connection summary.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="metric-grid">
+      <article class="metric-card">
+        <p class="metric-label">Status</p>
+        <p class="metric-value"><%= @workflow.status %></p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Tracker</p>
+        <p class="metric-value"><%= @workflow.tracker_connection.kind %></p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Agent</p>
+        <p class="metric-value"><%= @workflow.agent_connection.kind %></p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Running</p>
+        <p class="metric-value numeric"><%= @snapshot[:counts][:running] %></p>
+      </article>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Running sessions</h2>
+          <p class="section-copy">Current running entries for this workflow.</p>
+        </div>
+      </div>
+
+      <% if @snapshot[:running].empty? %>
+        <p class="empty-state">No active sessions.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @snapshot[:running].each do |entry| %>
+                <tr>
+                  <td><%= entry[:issue_identifier] %></td>
+                  <td><%= entry[:state] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  </section>
+</main>

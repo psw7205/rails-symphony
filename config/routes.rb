@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   root "symphony/dashboard#show"
   get "projects", to: "symphony/projects#index"
   get "projects/:id", to: "symphony/projects#show"
+  get "workflows/:id", to: "symphony/workflows#show"
 
   # JSON API (SPEC 13.7.2)
   namespace :api do
