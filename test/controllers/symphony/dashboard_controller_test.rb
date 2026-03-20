@@ -41,7 +41,9 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Projects"
     assert_includes response.body, "Active workflows"
+    assert_includes response.body, "Status"
     assert_includes response.body, "Tracker"
+    assert_includes response.body, "active"
     assert_includes response.body, "memory"
     assert_includes response.body, "Dashboard Workflow One"
     assert_includes response.body, "Dashboard Workflow Two"

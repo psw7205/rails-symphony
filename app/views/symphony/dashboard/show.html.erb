@@ -91,6 +91,7 @@
               <tr>
                 <th>Workflow</th>
                 <th>Project</th>
+                <th>Status</th>
                 <th>Tracker</th>
                 <th>Running</th>
                 <th>Retrying</th>
@@ -102,6 +103,7 @@
                 <tr>
                   <td><%= managed_workflow.name %></td>
                   <td><%= managed_workflow.managed_project.name %></td>
+                  <td><%= managed_workflow.status %></td>
                   <td><%= managed_workflow.tracker_connection.kind %></td>
                   <td><%= row[:snapshot][:counts][:running] %></td>
                   <td><%= row[:snapshot][:counts][:retrying] %></td>
