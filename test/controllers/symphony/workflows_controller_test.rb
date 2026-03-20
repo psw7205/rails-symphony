@@ -27,6 +27,43 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "WS-1"
   end
 
+  test "GET /workflows/new renders the workflow form" do
+    project = Symphony::ManagedProject.create!(name: "Workflow Form Project", slug: "workflow-form-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Workflow Form Tracker", kind: "memory", status: "active", config: {})
+    agent_connection = Symphony::AgentConnection.create!(name: "Workflow Form Agent", kind: "codex", status: "active", config: {})
+
+    get "/workflows/new"
+    assert_response :success
+    assert_includes response.body, "New workflow"
+    assert_includes response.body, project.name
+    assert_includes response.body, tracker_connection.name
+    assert_includes response.body, agent_connection.name
+  end
+
+  test "POST /workflows creates a managed workflow" do
+    project = Symphony::ManagedProject.create!(name: "Workflow Create Project", slug: "workflow-create-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Workflow Create Tracker", kind: "memory", status: "active", config: {})
+    agent_connection = Symphony::AgentConnection.create!(name: "Workflow Create Agent", kind: "codex", status: "active", config: {})
+
+    post "/workflows", params: {
+      managed_workflow: {
+        managed_project_id: project.id,
+        tracker_connection_id: tracker_connection.id,
+        agent_connection_id: agent_connection.id,
+        name: "Created Workflow",
+        slug: "created-workflow",
+        status: "active",
+        prompt_template: "Created workflow prompt",
+        runtime_config_json: "{\"workspace\":{\"root\":\"created-workflow-workspaces\"}}"
+      }
+    }
+
+    workflow = Symphony::ManagedWorkflow.order(:id).last
+    assert_redirected_to "/workflows/#{workflow.id}"
+    assert_equal "Created Workflow", workflow.name
+    assert_equal "created-workflow-workspaces", workflow.runtime_config["workspace"]["root"]
+  end
+
   test "GET /workflows/:id renders workflow retry rows" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)

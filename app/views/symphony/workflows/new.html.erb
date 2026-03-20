@@ -1,0 +1,59 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">New workflow</h1>
+          <p class="hero-copy">Create a managed workflow for the admin console.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <%= form_with model: @workflow, url: "/workflows" do |form| %>
+        <div>
+          <%= form.label :managed_project_id, "Project" %>
+          <%= form.select :managed_project_id, @projects.map { |project| [ project.name, project.id ] } %>
+        </div>
+
+        <div>
+          <%= form.label :tracker_connection_id, "Tracker connection" %>
+          <%= form.select :tracker_connection_id, @tracker_connections.map { |connection| [ connection.name, connection.id ] } %>
+        </div>
+
+        <div>
+          <%= form.label :agent_connection_id, "Agent connection" %>
+          <%= form.select :agent_connection_id, @agent_connections.map { |connection| [ connection.name, connection.id ] } %>
+        </div>
+
+        <div>
+          <%= form.label :name %>
+          <%= form.text_field :name %>
+        </div>
+
+        <div>
+          <%= form.label :slug %>
+          <%= form.text_field :slug %>
+        </div>
+
+        <div>
+          <%= form.label :status %>
+          <%= form.select :status, Symphony::ManagedWorkflow::STATUSES %>
+        </div>
+
+        <div>
+          <%= form.label :prompt_template %>
+          <%= form.text_area :prompt_template %>
+        </div>
+
+        <div>
+          <%= form.label :runtime_config_json, "Runtime config (JSON)" %>
+          <%= form.text_area :runtime_config_json %>
+        </div>
+
+        <%= form.submit "Create workflow" %>
+      <% end %>
+    </section>
+  </section>
+</main>
