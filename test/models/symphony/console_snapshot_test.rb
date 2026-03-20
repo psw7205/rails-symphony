@@ -26,6 +26,26 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     Symphony::WorkflowRuntimeManager.clear!
   end
 
+  test "build aggregates running totals across managed workflows" do
+    Symphony::WorkflowRuntimeManager.clear!
+    workflow = build_managed_workflow(
+      slug: "console-running-workflow",
+      name: "Console Running Workflow"
+    )
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "console-running-1", identifier: "CR-1", title: "Console running", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+
+    snapshot = Symphony::ConsoleSnapshot.build
+
+    assert_equal 1, snapshot[:totals][:running]
+    assert_equal 0, snapshot[:totals][:retrying]
+  ensure
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

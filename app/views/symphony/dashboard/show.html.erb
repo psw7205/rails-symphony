@@ -38,14 +38,14 @@
 
       <article class="metric-card">
         <p class="metric-label">Running</p>
-        <p class="metric-value numeric"><%= @snapshot[:counts][:running] %></p>
-        <p class="metric-detail">Active issue sessions in the current runtime.</p>
+        <p class="metric-value numeric"><%= @console_snapshot[:totals][:running] %></p>
+        <p class="metric-detail">Active issue sessions across managed workflows.</p>
       </article>
 
       <article class="metric-card">
         <p class="metric-label">Retrying</p>
-        <p class="metric-value numeric"><%= @snapshot[:counts][:retrying] %></p>
-        <p class="metric-detail">Issues waiting for the next retry window.</p>
+        <p class="metric-value numeric"><%= @console_snapshot[:totals][:retrying] %></p>
+        <p class="metric-detail">Issues waiting for retry across managed workflows.</p>
       </article>
 
       <article class="metric-card">
