@@ -31,6 +31,19 @@ class Symphony::TrackerConnectionsControllerTest < ActionDispatch::IntegrationTe
     assert_equal "OPS", connection.config["project_slug"]
   end
 
+  test "POST /tracker_connections renders validation errors" do
+    post "/tracker_connections", params: {
+      tracker_connection: {
+        name: "",
+        kind: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

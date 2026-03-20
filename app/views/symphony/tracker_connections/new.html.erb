@@ -11,6 +11,14 @@
     </header>
 
     <section class="section-card">
+      <% if @tracker_connection.errors.any? %>
+        <div class="empty-state">
+          <% @tracker_connection.errors.full_messages.each do |message| %>
+            <p><%= message %></p>
+          <% end %>
+        </div>
+      <% end %>
+
       <%= form_with model: @tracker_connection, url: "/tracker_connections" do |form| %>
         <div>
           <%= form.label :name %>
