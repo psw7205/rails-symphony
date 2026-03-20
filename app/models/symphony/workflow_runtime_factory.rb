@@ -16,7 +16,17 @@ module Symphony
         workspace: workspace,
         agent: agent,
         workflow_store: workflow_store,
-        managed_workflow_id: managed_workflow.id
+        managed_workflow_id: managed_workflow.id,
+        on_dispatch: ->(issue, attempt) do
+          AgentWorkerJob.perform_later(
+            issue_id: issue.id,
+            issue_identifier: issue.identifier,
+            issue_title: issue.title,
+            issue_state: issue.state,
+            attempt: attempt,
+            managed_workflow_id: managed_workflow.id
+          )
+        end
       )
 
       RuntimeContext.new(
