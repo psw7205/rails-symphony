@@ -15,6 +15,12 @@ module Symphony
           total_tokens: workflow_rows.sum { |row| row[:snapshot][:codex_totals][:total_tokens] || 0 },
           seconds_running: workflow_rows.sum { |row| row[:snapshot][:codex_totals][:seconds_running] || 0.0 }
         },
+        rate_limits: workflow_rows.each_with_object({}) do |row, limits|
+          rate_limits = row[:snapshot][:rate_limits]
+          next if rate_limits.blank?
+
+          limits[row[:managed_workflow].slug] = rate_limits
+        end,
         running: workflow_rows.flat_map do |row|
           row[:snapshot][:running].map do |entry|
             entry.merge(managed_workflow_id: row[:managed_workflow].id)

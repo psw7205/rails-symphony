@@ -103,6 +103,25 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     Symphony::WorkflowRuntimeManager.clear!
   end
 
+  test "build aggregates rate limits by workflow slug" do
+    Symphony::WorkflowRuntimeManager.clear!
+    workflow = build_managed_workflow(
+      slug: "console-rate-limit-workflow",
+      name: "Console Rate Limit Workflow"
+    )
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.instance_variable_set(
+      :@codex_rate_limits,
+      { "remaining" => 42, "reset_at" => "2026-03-20T12:00:00Z" }
+    )
+
+    snapshot = Symphony::ConsoleSnapshot.build
+
+    assert_equal 42, snapshot[:rate_limits][workflow.slug]["remaining"]
+  ensure
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

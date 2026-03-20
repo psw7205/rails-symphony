@@ -72,6 +72,21 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/<p class="metric-label">Runtime<\/p>\s*<p class="metric-value numeric">3m 0s<\/p>/, response.body)
   end
 
+  test "GET / renders rate limits from managed workflow snapshots" do
+    workflow = build_managed_workflow(slug: "dashboard-rate-limit-workflow", name: "Dashboard Rate Limit Workflow")
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.instance_variable_set(
+      :@codex_rate_limits,
+      { "remaining" => 7, "reset_at" => "2026-03-20T12:00:00Z" }
+    )
+
+    get root_path
+    assert_response :success
+    assert_includes response.body, "dashboard-rate-limit-workflow"
+    assert_includes response.body, "remaining"
+    assert_includes response.body, "7"
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

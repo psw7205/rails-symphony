@@ -71,7 +71,7 @@
           <p class="section-copy">Latest upstream rate-limit snapshot, when available.</p>
         </div>
       </div>
-      <pre class="code-panel"><%= @snapshot[:rate_limits]&.to_json || "n/a" %></pre>
+      <pre class="code-panel"><%= @console_snapshot[:rate_limits].presence&.to_json || "n/a" %></pre>
     </section>
 
     <section class="section-card">
