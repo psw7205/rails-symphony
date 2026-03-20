@@ -275,6 +275,90 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     assert_in_delta 100.0, totals[:seconds_running], 0.01
   end
 
+  test "managed workflow restore_from_db! restores only matching retry entries by source issue id" do
+    managed_workflow, other_workflow = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+
+    Symphony::RetryEntry.create!(
+      issue_id: "#{managed_workflow.id}:restore-managed-1",
+      managed_workflow_id: managed_workflow.id,
+      identifier: "TEST-RM1",
+      attempt: 3,
+      due_at: 10.seconds.from_now,
+      error: "network"
+    )
+    Symphony::RetryEntry.create!(
+      issue_id: "#{other_workflow.id}:restore-managed-2",
+      managed_workflow_id: other_workflow.id,
+      identifier: "TEST-RM2",
+      attempt: 2,
+      due_at: 20.seconds.from_now,
+      error: "other"
+    )
+
+    managed_orchestrator.restore_from_db!
+
+    assert_equal 1, managed_orchestrator.retry_attempts.size
+    entry = managed_orchestrator.retry_attempts["restore-managed-1"]
+    assert_equal "TEST-RM1", entry[:identifier]
+    assert_equal 3, entry[:attempt]
+    assert managed_orchestrator.claimed.include?("restore-managed-1")
+    assert_not managed_orchestrator.claimed.include?("#{managed_workflow.id}:restore-managed-1")
+  end
+
+  test "managed workflow restore_from_db! interrupts only matching workflow run attempts" do
+    managed_workflow, other_workflow = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+
+    Symphony::PersistedIssue.create!(
+      id: "#{managed_workflow.id}:restore-managed-3",
+      managed_workflow_id: managed_workflow.id,
+      source_issue_id: "restore-managed-3",
+      tracker_kind: "linear",
+      identifier: "TEST-RM3",
+      state: "In Progress"
+    )
+    Symphony::PersistedIssue.create!(
+      id: "#{other_workflow.id}:restore-managed-4",
+      managed_workflow_id: other_workflow.id,
+      source_issue_id: "restore-managed-4",
+      tracker_kind: "linear",
+      identifier: "TEST-RM4",
+      state: "In Progress"
+    )
+
+    Symphony::RunAttempt.create!(
+      issue_id: "#{managed_workflow.id}:restore-managed-3",
+      managed_workflow_id: managed_workflow.id,
+      attempt: 2,
+      status: "running",
+      started_at: 1.hour.ago
+    )
+    Symphony::RunAttempt.create!(
+      issue_id: "#{other_workflow.id}:restore-managed-4",
+      managed_workflow_id: other_workflow.id,
+      attempt: 1,
+      status: "running",
+      started_at: 30.minutes.ago
+    )
+
+    managed_orchestrator.restore_from_db!
+
+    managed_attempt = Symphony::RunAttempt.find_by(
+      issue_id: "#{managed_workflow.id}:restore-managed-3",
+      managed_workflow_id: managed_workflow.id
+    )
+    other_attempt = Symphony::RunAttempt.find_by(
+      issue_id: "#{other_workflow.id}:restore-managed-4",
+      managed_workflow_id: other_workflow.id
+    )
+
+    assert_equal "interrupted", managed_attempt.status
+    assert_not_nil managed_attempt.finished_at
+    assert_equal "running", other_attempt.status
+    assert_nil other_attempt.finished_at
+  end
+
   test "full dispatch-exit-retry cycle persists to DB" do
     issue = Symphony::Issue.new(
       id: "cycle-1", identifier: "CYCLE-1", title: "Cycle test",

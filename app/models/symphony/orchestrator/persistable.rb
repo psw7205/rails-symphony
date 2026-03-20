@@ -86,20 +86,21 @@ module Symphony
         end
 
         # Restore retry entries
-        RetryEntry.find_each do |entry|
-          @retry_attempts[entry.issue_id] = {
+        scoped_retry_entries.find_each do |entry|
+          source_issue_id = source_issue_id_for(entry.issue_id)
+          @retry_attempts[source_issue_id] = {
             identifier: entry.identifier,
             attempt: entry.attempt,
             delay_ms: 0,
             due_at: entry.due_at,
             error: entry.error
           }
-          @claimed.add(entry.issue_id)
+          @claimed.add(source_issue_id)
         end
         Rails.logger.info("[Orchestrator] Restored #{@retry_attempts.size} retry entries from DB")
 
         # Mark incomplete run attempts as interrupted
-        RunAttempt.where(status: "running").update_all(status: "interrupted", finished_at: Time.current)
+        scoped_run_attempts.where(status: "running").update_all(status: "interrupted", finished_at: Time.current)
       rescue => e
         Rails.logger.warn("[Orchestrator::Persistable] restore_from_db! failed: #{e.message}")
       end
@@ -120,6 +121,12 @@ module Symphony
         return source_issue_id if managed_workflow_id.blank?
 
         "#{managed_workflow_id}:#{source_issue_id}"
+      end
+
+      def source_issue_id_for(persisted_issue_id)
+        return persisted_issue_id if managed_workflow_id.blank?
+
+        persisted_issue_id.delete_prefix("#{managed_workflow_id}:")
       end
 
       def scoped_retry_entries
