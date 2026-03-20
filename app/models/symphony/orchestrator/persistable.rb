@@ -35,15 +35,18 @@ module Symphony
       end
 
       def persist_worker_exit(issue_id, status:, error: nil)
-        ra = RunAttempt.where(issue_id: issue_id, status: "running").order(attempt: :desc).first
+        persisted_issue_id = persisted_issue_id_for(issue_id)
+        ra = scoped_run_attempts.where(issue_id: persisted_issue_id, status: "running").order(attempt: :desc).first
         ra&.update!(status: status, error: error, finished_at: Time.current)
       rescue => e
         Rails.logger.warn("[Orchestrator::Persistable] persist_worker_exit failed: #{e.message}")
       end
 
       def persist_retry(issue_id, identifier, attempt:, due_at:, error: nil)
+        persisted_issue_id = persisted_issue_id_for(issue_id)
         RetryEntry.upsert(
-          { issue_id: issue_id, identifier: identifier, attempt: attempt,
+          { issue_id: persisted_issue_id, managed_workflow_id: managed_workflow_id,
+            identifier: identifier, attempt: attempt,
             due_at: due_at, error: error,
             created_at: Time.current, updated_at: Time.current },
           unique_by: :issue_id
@@ -53,7 +56,7 @@ module Symphony
       end
 
       def clear_persisted_retry(issue_id)
-        RetryEntry.where(issue_id: issue_id).delete_all
+        scoped_retry_entries.where(issue_id: persisted_issue_id_for(issue_id)).delete_all
       rescue => e
         Rails.logger.warn("[Orchestrator::Persistable] clear_persisted_retry failed: #{e.message}")
       end
@@ -117,6 +120,18 @@ module Symphony
         return source_issue_id if managed_workflow_id.blank?
 
         "#{managed_workflow_id}:#{source_issue_id}"
+      end
+
+      def scoped_retry_entries
+        return RetryEntry.all if managed_workflow_id.blank?
+
+        RetryEntry.where(managed_workflow_id: managed_workflow_id)
+      end
+
+      def scoped_run_attempts
+        return RunAttempt.all if managed_workflow_id.blank?
+
+        RunAttempt.where(managed_workflow_id: managed_workflow_id)
       end
     end
   end

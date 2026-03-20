@@ -101,6 +101,22 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     assert_not_nil ra.finished_at
   end
 
+  test "managed workflow persist_worker_exit updates the scoped run attempt" do
+    managed_workflow, = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+    issue = Symphony::Issue.new(id: "persist-managed-2", identifier: "TEST-M2", title: "T", state: "In Progress")
+
+    managed_orchestrator.send(:persist_dispatch, issue, 1)
+    managed_orchestrator.send(:persist_worker_exit, "persist-managed-2", status: "completed")
+
+    run_attempt = Symphony::RunAttempt.find_by(
+      issue_id: "#{managed_workflow.id}:persist-managed-2",
+      managed_workflow_id: managed_workflow.id
+    )
+    assert_equal "completed", run_attempt.status
+    assert_not_nil run_attempt.finished_at
+  end
+
   test "persist_worker_exit with error" do
     issue = Symphony::Issue.new(id: "persist-3", identifier: "TEST-3", title: "T", state: "In Progress")
     @orchestrator.send(:persist_dispatch, issue, 1)
@@ -123,6 +139,29 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
 
     @orchestrator.send(:clear_persisted_retry, "persist-4")
     assert_nil Symphony::RetryEntry.find_by(issue_id: "persist-4")
+  end
+
+  test "managed workflow persist_retry and clear_persisted_retry use scoped runtime ids" do
+    managed_workflow, = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+    due = 5.seconds.from_now
+
+    managed_orchestrator.send(:persist_retry, "persist-managed-3", "TEST-M3", attempt: 2, due_at: due, error: "stall")
+
+    entry = Symphony::RetryEntry.find_by(
+      issue_id: "#{managed_workflow.id}:persist-managed-3",
+      managed_workflow_id: managed_workflow.id
+    )
+    assert_not_nil entry
+    assert_equal "TEST-M3", entry.identifier
+    assert_equal 2, entry.attempt
+    assert_equal "stall", entry.error
+
+    managed_orchestrator.send(:clear_persisted_retry, "persist-managed-3")
+    assert_nil Symphony::RetryEntry.find_by(
+      issue_id: "#{managed_workflow.id}:persist-managed-3",
+      managed_workflow_id: managed_workflow.id
+    )
   end
 
   test "persist_codex_totals writes to OrchestratorState" do
