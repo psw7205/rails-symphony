@@ -161,6 +161,45 @@
     <section class="section-card">
       <div class="section-header">
         <div>
+          <h2 class="section-title">Recent failures</h2>
+          <p class="section-copy">Latest managed workflow failures waiting for operator attention.</p>
+        </div>
+      </div>
+
+      <% if @console_snapshot[:recent_failures].empty? %>
+        <p class="empty-state">No recent failures.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Attempt</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @console_snapshot[:recent_failures].each do |entry| %>
+                <tr>
+                  <td>
+                    <div class="issue-stack">
+                      <span class="issue-id"><%= entry[:issue_identifier] %></span>
+                      <%= link_to "JSON", api_v1_workflow_issue_path(entry[:managed_workflow_id], entry[:issue_identifier]), class: "issue-link" %>
+                    </div>
+                  </td>
+                  <td><%= entry[:attempt] %></td>
+                  <td><%= entry[:error] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
           <h2 class="section-title">Retry queue</h2>
           <p class="section-copy">Issues waiting for the next retry window.</p>
         </div>

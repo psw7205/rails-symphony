@@ -107,6 +107,22 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "7"
   end
 
+  test "GET / renders recent failures from managed workflows" do
+    workflow = build_managed_workflow(slug: "dashboard-failure-workflow", name: "Dashboard Failure Workflow")
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "dashboard-failure-1", identifier: "DF-1", title: "Dashboard failure", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+    context.orchestrator.on_worker_exit_abnormal("dashboard-failure-1", "DF-1", attempt: 1, error: "process_died")
+
+    get root_path
+    assert_response :success
+    assert_includes response.body, "Recent failures"
+    assert_includes response.body, "DF-1"
+    assert_includes response.body, "process_died"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
