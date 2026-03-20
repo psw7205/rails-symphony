@@ -55,6 +55,22 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "DRS-1"
   end
 
+  test "GET / renders token and runtime metrics from managed workflow totals" do
+    workflow = build_managed_workflow(slug: "dashboard-totals-workflow", name: "Dashboard Totals Workflow")
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.instance_variable_get(:@codex_totals).merge!(
+      input_tokens: 120,
+      output_tokens: 30,
+      total_tokens: 150,
+      seconds_running: 180.0
+    )
+
+    get root_path
+    assert_response :success
+    assert_match(/<p class="metric-label">Total tokens<\/p>\s*<p class="metric-value numeric">150<\/p>/, response.body)
+    assert_match(/<p class="metric-label">Runtime<\/p>\s*<p class="metric-value numeric">3m 0s<\/p>/, response.body)
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

@@ -65,6 +65,43 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     Symphony::WorkflowRuntimeManager.clear!
   end
 
+  test "build aggregates codex token and runtime totals across managed workflows" do
+    Symphony::WorkflowRuntimeManager.clear!
+    first_workflow = build_managed_workflow(
+      slug: "console-totals-workflow-one",
+      name: "Console Totals Workflow One"
+    )
+    second_workflow = build_managed_workflow(
+      slug: "console-totals-workflow-two",
+      name: "Console Totals Workflow Two"
+    )
+
+    first_context = Symphony::WorkflowRuntimeManager.fetch(first_workflow.id)
+    second_context = Symphony::WorkflowRuntimeManager.fetch(second_workflow.id)
+
+    first_context.orchestrator.instance_variable_get(:@codex_totals).merge!(
+      input_tokens: 100,
+      output_tokens: 40,
+      total_tokens: 140,
+      seconds_running: 120.0
+    )
+    second_context.orchestrator.instance_variable_get(:@codex_totals).merge!(
+      input_tokens: 30,
+      output_tokens: 10,
+      total_tokens: 40,
+      seconds_running: 60.0
+    )
+
+    snapshot = Symphony::ConsoleSnapshot.build
+
+    assert_equal 130, snapshot[:codex_totals][:input_tokens]
+    assert_equal 50, snapshot[:codex_totals][:output_tokens]
+    assert_equal 180, snapshot[:codex_totals][:total_tokens]
+    assert_in_delta 180.0, snapshot[:codex_totals][:seconds_running], 0.01
+  ensure
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

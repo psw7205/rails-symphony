@@ -50,17 +50,17 @@
 
       <article class="metric-card">
         <p class="metric-label">Total tokens</p>
-        <p class="metric-value numeric"><%= number_with_delimiter(@snapshot[:codex_totals][:total_tokens]) %></p>
+        <p class="metric-value numeric"><%= number_with_delimiter(@console_snapshot[:codex_totals][:total_tokens]) %></p>
         <p class="metric-detail numeric">
-          In <%= number_with_delimiter(@snapshot[:codex_totals][:input_tokens]) %> /
-          Out <%= number_with_delimiter(@snapshot[:codex_totals][:output_tokens]) %>
+          In <%= number_with_delimiter(@console_snapshot[:codex_totals][:input_tokens]) %> /
+          Out <%= number_with_delimiter(@console_snapshot[:codex_totals][:output_tokens]) %>
         </p>
       </article>
 
       <article class="metric-card">
         <p class="metric-label">Runtime</p>
-        <p class="metric-value numeric"><%= format_runtime(@snapshot[:codex_totals][:seconds_running]) %></p>
-        <p class="metric-detail">Total Codex runtime across completed and active sessions.</p>
+        <p class="metric-value numeric"><%= format_runtime(@console_snapshot[:codex_totals][:seconds_running]) %></p>
+        <p class="metric-detail">Total Codex runtime across managed workflow sessions.</p>
       </article>
     </section>
 
