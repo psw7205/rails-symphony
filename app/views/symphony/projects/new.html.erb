@@ -11,6 +11,14 @@
     </header>
 
     <section class="section-card">
+      <% if @project.errors.any? %>
+        <div class="empty-state">
+          <% @project.errors.full_messages.each do |message| %>
+            <p><%= message %></p>
+          <% end %>
+        </div>
+      <% end %>
+
       <%= form_with model: @project, url: "/projects" do |form| %>
         <div>
           <%= form.label :name %>

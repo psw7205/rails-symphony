@@ -78,6 +78,19 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Created Project", Symphony::ManagedProject.last.name
   end
 
+  test "POST /projects renders validation errors" do
+    post "/projects", params: {
+      managed_project: {
+        name: "",
+        slug: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
