@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_05_073934) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_19_090200) do
+  create_table "symphony_agent_connections", force: :cascade do |t|
+    t.json "config"
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.string "name", null: false
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "symphony_agent_sessions", force: :cascade do |t|
     t.integer "codex_app_server_pid"
     t.integer "codex_input_tokens", default: 0
@@ -43,6 +52,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_05_073934) do
     t.string "url"
     t.index ["identifier"], name: "index_symphony_issues_on_identifier", unique: true
     t.index ["state"], name: "index_symphony_issues_on_state"
+  end
+
+  create_table "symphony_managed_projects", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_symphony_managed_projects_on_slug", unique: true
   end
 
   create_table "symphony_orchestrator_states", force: :cascade do |t|
@@ -78,6 +97,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_05_073934) do
     t.string "workspace_path"
     t.index ["issue_id", "attempt"], name: "index_symphony_run_attempts_on_issue_id_and_attempt"
     t.index ["issue_id"], name: "index_symphony_run_attempts_on_issue_id"
+  end
+
+  create_table "symphony_tracker_connections", force: :cascade do |t|
+    t.json "config"
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.string "name", null: false
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
   end
 
   add_foreign_key "symphony_agent_sessions", "symphony_run_attempts", column: "run_attempt_id"
