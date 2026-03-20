@@ -25,6 +25,13 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     assert_equal :belongs_to, agent_connection.macro
   end
 
+  test "has many managed issues" do
+    association = Symphony::ManagedWorkflow.reflect_on_association(:managed_issues)
+
+    assert_not_nil association
+    assert_equal :has_many, association.macro
+  end
+
   test "managed workflows table includes planned columns" do
     table_name = :symphony_managed_workflows
     connection = ActiveRecord::Base.connection

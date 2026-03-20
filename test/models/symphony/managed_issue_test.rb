@@ -20,4 +20,11 @@ class Symphony::ManagedIssueTest < ActiveSupport::TestCase
       assert_includes columns.keys, column_name
     end
   end
+
+  test "belongs to managed workflow" do
+    association = Symphony::ManagedIssue.reflect_on_association(:managed_workflow)
+
+    assert_not_nil association
+    assert_equal :belongs_to, association.macro
+  end
 end
