@@ -65,6 +65,31 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     assert_not_nil ra.started_at
   end
 
+  test "managed workflow persist_dispatch uses workflow scoped runtime ids" do
+    managed_workflow, = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+    issue = Symphony::Issue.new(
+      id: "persist-managed-1", identifier: "TEST-M1", title: "Managed test issue",
+      state: "In Progress"
+    )
+
+    managed_orchestrator.send(:persist_dispatch, issue, 2)
+
+    persisted_issue = Symphony::PersistedIssue.find("#{managed_workflow.id}:persist-managed-1")
+    assert_equal managed_workflow.id, persisted_issue.managed_workflow_id
+    assert_equal "persist-managed-1", persisted_issue.source_issue_id
+    assert_equal "memory", persisted_issue.tracker_kind
+    assert_equal "TEST-M1", persisted_issue.identifier
+
+    run_attempt = Symphony::RunAttempt.find_by(
+      issue_id: "#{managed_workflow.id}:persist-managed-1",
+      managed_workflow_id: managed_workflow.id
+    )
+    assert_not_nil run_attempt
+    assert_equal 2, run_attempt.attempt
+    assert_equal "running", run_attempt.status
+  end
+
   test "persist_worker_exit updates RunAttempt status" do
     issue = Symphony::Issue.new(id: "persist-2", identifier: "TEST-2", title: "T", state: "In Progress")
     @orchestrator.send(:persist_dispatch, issue, 1)

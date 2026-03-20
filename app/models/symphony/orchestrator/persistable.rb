@@ -2,8 +2,8 @@ module Symphony
   class Orchestrator
     module Persistable
       def persist_dispatch(issue, attempt)
-        pi = PersistedIssue.find_or_initialize_by(id: issue.id)
-        pi.update!(
+        persisted_issue_id = persisted_issue_id_for(issue.id)
+        persisted_issue_attributes = {
           identifier: issue.identifier,
           title: issue.title,
           description: issue.description,
@@ -13,10 +13,19 @@ module Symphony
           url: issue.url,
           labels: issue.respond_to?(:labels) ? issue.labels : [],
           blocked_by: issue.respond_to?(:blocked_by) ? issue.blocked_by : []
-        )
+        }
+        if managed_workflow_id.present?
+          persisted_issue_attributes[:managed_workflow_id] = managed_workflow_id
+          persisted_issue_attributes[:source_issue_id] = issue.id
+          persisted_issue_attributes[:tracker_kind] = config.tracker_kind
+        end
+
+        pi = PersistedIssue.find_or_initialize_by(id: persisted_issue_id)
+        pi.update!(persisted_issue_attributes)
 
         RunAttempt.create!(
-          issue_id: issue.id,
+          issue_id: persisted_issue_id,
+          managed_workflow_id: managed_workflow_id,
           attempt: attempt || 1,
           status: "running",
           started_at: Time.current
@@ -102,6 +111,12 @@ module Symphony
         return OrchestratorState.first if managed_workflow_id.blank?
 
         OrchestratorState.find_by(managed_workflow_id: managed_workflow_id)
+      end
+
+      def persisted_issue_id_for(source_issue_id)
+        return source_issue_id if managed_workflow_id.blank?
+
+        "#{managed_workflow_id}:#{source_issue_id}"
       end
     end
   end
