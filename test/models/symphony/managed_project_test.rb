@@ -9,6 +9,13 @@ class Symphony::ManagedProjectTest < ActiveSupport::TestCase
     assert_equal "symphony_managed_projects", Symphony::ManagedProject.table_name
   end
 
+  test "has many managed workflows" do
+    association = Symphony::ManagedProject.reflect_on_association(:managed_workflows)
+
+    assert_not_nil association
+    assert_equal :has_many, association.macro
+  end
+
   test "managed projects table includes planned columns and unique slug index" do
     table_name = :symphony_managed_projects
     connection = ActiveRecord::Base.connection

@@ -10,6 +10,21 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     assert_equal "symphony_managed_workflows", Symphony::ManagedWorkflow.table_name
   end
 
+  test "belongs to managed project, tracker connection, and agent connection" do
+    managed_project = Symphony::ManagedWorkflow.reflect_on_association(:managed_project)
+    tracker_connection = Symphony::ManagedWorkflow.reflect_on_association(:tracker_connection)
+    agent_connection = Symphony::ManagedWorkflow.reflect_on_association(:agent_connection)
+
+    assert_not_nil managed_project
+    assert_equal :belongs_to, managed_project.macro
+
+    assert_not_nil tracker_connection
+    assert_equal :belongs_to, tracker_connection.macro
+
+    assert_not_nil agent_connection
+    assert_equal :belongs_to, agent_connection.macro
+  end
+
   test "managed workflows table includes planned columns" do
     table_name = :symphony_managed_workflows
     connection = ActiveRecord::Base.connection
@@ -23,5 +38,14 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     ].each do |column_name|
       assert_includes columns.keys, column_name
     end
+  end
+
+  test "requires managed project, tracker connection, and agent connection" do
+    workflow = Symphony::ManagedWorkflow.new(name: "Console", slug: "console", status: "active")
+
+    assert_not workflow.valid?
+    assert_includes workflow.errors[:managed_project], "must exist"
+    assert_includes workflow.errors[:tracker_connection], "must exist"
+    assert_includes workflow.errors[:agent_connection], "must exist"
   end
 end
