@@ -2,6 +2,7 @@ module Symphony
   class DashboardController < ApplicationController
     def show
       @snapshot = ::Symphony.orchestrator&.snapshot || empty_snapshot
+      @console_snapshot = ::Symphony::ConsoleSnapshot.build
     end
 
     private

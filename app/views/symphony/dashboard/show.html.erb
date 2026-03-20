@@ -65,6 +65,43 @@
     <section class="section-card">
       <div class="section-header">
         <div>
+          <h2 class="section-title">Managed workflows</h2>
+          <p class="section-copy">Active managed workflows and their current runtime snapshot.</p>
+        </div>
+      </div>
+
+      <% if @console_snapshot[:workflow_rows].empty? %>
+        <p class="empty-state">No active workflows.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Project</th>
+                <th>Running</th>
+                <th>Retrying</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @console_snapshot[:workflow_rows].each do |row| %>
+                <% managed_workflow = row[:managed_workflow] %>
+                <tr>
+                  <td><%= managed_workflow.name %></td>
+                  <td><%= managed_workflow.managed_project.name %></td>
+                  <td><%= row[:snapshot][:counts][:running] %></td>
+                  <td><%= row[:snapshot][:counts][:retrying] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
           <h2 class="section-title">Running sessions</h2>
           <p class="section-copy">Active issues, last known agent activity, and token usage.</p>
         </div>
