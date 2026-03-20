@@ -122,6 +122,27 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     Symphony::WorkflowRuntimeManager.clear!
   end
 
+  test "build exposes recent failures from retry entries" do
+    Symphony::WorkflowRuntimeManager.clear!
+    workflow = build_managed_workflow(
+      slug: "console-failure-workflow",
+      name: "Console Failure Workflow"
+    )
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "console-failure-1", identifier: "CF-1", title: "Console failure", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+    context.orchestrator.on_worker_exit_abnormal("console-failure-1", "CF-1", attempt: 1, error: "process_died")
+
+    snapshot = Symphony::ConsoleSnapshot.build
+
+    assert_equal "CF-1", snapshot[:recent_failures].first[:issue_identifier]
+    assert_equal "process_died", snapshot[:recent_failures].first[:error]
+  ensure
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

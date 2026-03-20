@@ -2,6 +2,17 @@ module Symphony
   class ConsoleSnapshot
     def self.build
       workflow_rows = WorkflowRuntimeManager.global_snapshot
+      running_entries = workflow_rows.flat_map do |row|
+        row[:snapshot][:running].map do |entry|
+          entry.merge(managed_workflow_id: row[:managed_workflow].id)
+        end
+      end
+      retry_entries = workflow_rows.flat_map do |row|
+        row[:snapshot][:retrying].map do |entry|
+          entry.merge(managed_workflow_id: row[:managed_workflow].id)
+        end
+      end
+
       {
         project_count: ManagedProject.count,
         active_workflow_count: workflow_rows.size,
@@ -21,16 +32,9 @@ module Symphony
 
           limits[row[:managed_workflow].slug] = rate_limits
         end,
-        running: workflow_rows.flat_map do |row|
-          row[:snapshot][:running].map do |entry|
-            entry.merge(managed_workflow_id: row[:managed_workflow].id)
-          end
-        end,
-        retrying: workflow_rows.flat_map do |row|
-          row[:snapshot][:retrying].map do |entry|
-            entry.merge(managed_workflow_id: row[:managed_workflow].id)
-          end
-        end,
+        running: running_entries,
+        retrying: retry_entries,
+        recent_failures: retry_entries.select { |entry| entry[:error].present? },
         workflow_rows: workflow_rows
       }
     end
