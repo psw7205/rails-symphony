@@ -114,6 +114,37 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     assert_in_delta 42.5, state.codex_total_seconds_running, 0.01
   end
 
+  test "persist_codex_totals writes to the matching workflow state when managed workflow is set" do
+    managed_workflow, other_workflow = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+
+    Symphony::OrchestratorState.for_workflow!(other_workflow.id).update!(
+      codex_total_input_tokens: 10,
+      codex_total_output_tokens: 20,
+      codex_total_tokens: 30,
+      codex_total_seconds_running: 40.0
+    )
+
+    managed_orchestrator.instance_variable_get(:@codex_totals).merge!(
+      input_tokens: 1000, output_tokens: 500, total_tokens: 1500, seconds_running: 42.5
+    )
+
+    managed_orchestrator.send(:persist_codex_totals)
+
+    managed_state = Symphony::OrchestratorState.for_workflow!(managed_workflow.id)
+    other_state = Symphony::OrchestratorState.for_workflow!(other_workflow.id)
+
+    assert_equal 1000, managed_state.codex_total_input_tokens
+    assert_equal 500, managed_state.codex_total_output_tokens
+    assert_equal 1500, managed_state.codex_total_tokens
+    assert_in_delta 42.5, managed_state.codex_total_seconds_running, 0.01
+
+    assert_equal 10, other_state.codex_total_input_tokens
+    assert_equal 20, other_state.codex_total_output_tokens
+    assert_equal 30, other_state.codex_total_tokens
+    assert_in_delta 40.0, other_state.codex_total_seconds_running, 0.01
+  end
+
   test "restore_from_db! restores codex totals and retry entries" do
     # Seed DB state
     Symphony::OrchestratorState.create!(
@@ -152,6 +183,32 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
     ra = Symphony::RunAttempt.find_by(issue_id: "restore-1")
     assert_equal "interrupted", ra.status
     assert_not_nil ra.finished_at
+  end
+
+  test "restore_from_db! reads codex totals from the matching workflow state" do
+    managed_workflow, other_workflow = build_managed_workflows
+    managed_orchestrator = build_orchestrator(managed_workflow_id: managed_workflow.id)
+
+    Symphony::OrchestratorState.for_workflow!(other_workflow.id).update!(
+      codex_total_input_tokens: 111,
+      codex_total_output_tokens: 222,
+      codex_total_tokens: 333,
+      codex_total_seconds_running: 44.0
+    )
+    Symphony::OrchestratorState.for_workflow!(managed_workflow.id).update!(
+      codex_total_input_tokens: 2000,
+      codex_total_output_tokens: 800,
+      codex_total_tokens: 2800,
+      codex_total_seconds_running: 100.0
+    )
+
+    managed_orchestrator.restore_from_db!
+
+    totals = managed_orchestrator.instance_variable_get(:@codex_totals)
+    assert_equal 2000, totals[:input_tokens]
+    assert_equal 800, totals[:output_tokens]
+    assert_equal 2800, totals[:total_tokens]
+    assert_in_delta 100.0, totals[:seconds_running], 0.01
   end
 
   test "full dispatch-exit-retry cycle persists to DB" do
@@ -208,4 +265,46 @@ class Symphony::OrchestratorPersistableTest < ActiveSupport::TestCase
   ensure
     Symphony::PersistedIssue.table_name = original_table
   end
+
+  private
+    def build_orchestrator(managed_workflow_id: nil)
+      store = Symphony::WorkflowStore.new(@workflow_path.to_s)
+      tracker = Symphony::Trackers::Memory.new
+      workspace = Symphony::Workspace.new(root: Rails.root.join("tmp", "test_persist_ws").to_s)
+      agent = Symphony::Agents::Base.new
+
+      Symphony::Orchestrator.new(
+        tracker: tracker,
+        workspace: workspace,
+        agent: agent,
+        workflow_store: store,
+        on_dispatch: ->(issue, attempt) { @dispatched << { issue: issue, attempt: attempt } },
+        managed_workflow_id: managed_workflow_id
+      )
+    end
+
+    def build_managed_workflows
+      project = Symphony::ManagedProject.create!(name: "Persist Project", slug: "persist-project", status: "active")
+      tracker_connection = Symphony::TrackerConnection.create!(name: "Persist Linear", kind: "linear", status: "active")
+      agent_connection = Symphony::AgentConnection.create!(name: "Persist Codex", kind: "codex", status: "active")
+
+      [
+        Symphony::ManagedWorkflow.create!(
+          managed_project: project,
+          tracker_connection: tracker_connection,
+          agent_connection: agent_connection,
+          name: "Persist One",
+          slug: "persist-one",
+          status: "active"
+        ),
+        Symphony::ManagedWorkflow.create!(
+          managed_project: project,
+          tracker_connection: tracker_connection,
+          agent_connection: agent_connection,
+          name: "Persist Two",
+          slug: "persist-two",
+          status: "active"
+        )
+      ]
+    end
 end

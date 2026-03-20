@@ -50,7 +50,7 @@ module Symphony
       end
 
       def persist_codex_totals
-        state = OrchestratorState.current
+        state = current_orchestrator_state
         state.update!(
           codex_total_input_tokens: @codex_totals[:input_tokens],
           codex_total_output_tokens: @codex_totals[:output_tokens],
@@ -63,7 +63,7 @@ module Symphony
 
       def restore_from_db!
         # Restore codex totals
-        state = OrchestratorState.first
+        state = stored_orchestrator_state
         if state
           @codex_totals[:input_tokens] = state.codex_total_input_tokens || 0
           @codex_totals[:output_tokens] = state.codex_total_output_tokens || 0
@@ -90,6 +90,18 @@ module Symphony
         RunAttempt.where(status: "running").update_all(status: "interrupted", finished_at: Time.current)
       rescue => e
         Rails.logger.warn("[Orchestrator::Persistable] restore_from_db! failed: #{e.message}")
+      end
+
+      def current_orchestrator_state
+        return OrchestratorState.current if managed_workflow_id.blank?
+
+        OrchestratorState.for_workflow!(managed_workflow_id)
+      end
+
+      def stored_orchestrator_state
+        return OrchestratorState.first if managed_workflow_id.blank?
+
+        OrchestratorState.find_by(managed_workflow_id: managed_workflow_id)
       end
     end
   end

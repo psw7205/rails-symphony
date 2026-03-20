@@ -2,14 +2,15 @@ module Symphony
   class Orchestrator
     include Orchestrator::Persistable
 
-    attr_reader :running, :claimed, :retry_attempts, :completed
+    attr_reader :running, :claimed, :retry_attempts, :completed, :managed_workflow_id
 
-    def initialize(tracker:, workspace:, agent:, workflow_store:, on_dispatch: nil)
+    def initialize(tracker:, workspace:, agent:, workflow_store:, on_dispatch: nil, managed_workflow_id: nil)
       @tracker = tracker
       @workspace = workspace
       @agent = agent
       @workflow_store = workflow_store
       @on_dispatch = on_dispatch
+      @managed_workflow_id = managed_workflow_id
       @running = {}     # issue_id => RunningEntry
       @claimed = Set.new
       @retry_attempts = {} # issue_id => RetryEntry
