@@ -46,6 +46,34 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "process_died"
   end
 
+  test "GET /workflows/:id renders recent run attempts" do
+    workflow = build_managed_workflow
+    Symphony::PersistedIssue.create!(
+      id: "#{workflow.id}:workflow-attempt-1",
+      managed_workflow_id: workflow.id,
+      source_issue_id: "workflow-attempt-1",
+      tracker_kind: "memory",
+      identifier: "WA-1",
+      title: "Workflow attempt issue",
+      state: "In Progress"
+    )
+    Symphony::RunAttempt.create!(
+      issue_id: "#{workflow.id}:workflow-attempt-1",
+      managed_workflow_id: workflow.id,
+      attempt: 3,
+      status: "failed",
+      error: "turn_timeout",
+      started_at: 10.minutes.ago,
+      finished_at: 9.minutes.ago
+    )
+
+    get "/workflows/#{workflow.id}"
+    assert_response :success
+    assert_includes response.body, "Recent attempts"
+    assert_includes response.body, "failed"
+    assert_includes response.body, "turn_timeout"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

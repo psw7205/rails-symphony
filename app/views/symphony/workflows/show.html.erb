@@ -97,5 +97,41 @@
         </div>
       <% end %>
     </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Recent attempts</h2>
+          <p class="section-copy">Latest persisted run attempts for this workflow.</p>
+        </div>
+      </div>
+
+      <% if @recent_attempts.empty? %>
+        <p class="empty-state">No attempts yet.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Attempt</th>
+                <th>Status</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_attempts.each do |attempt| %>
+                <tr>
+                  <td><%= attempt.persisted_issue&.identifier || attempt.issue_id %></td>
+                  <td><%= attempt.attempt %></td>
+                  <td><%= attempt.status %></td>
+                  <td><%= attempt.error || "n/a" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
   </section>
 </main>
