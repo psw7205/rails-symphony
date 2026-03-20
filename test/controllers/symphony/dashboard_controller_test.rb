@@ -42,6 +42,19 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/<p class="metric-label">Running<\/p>\s*<p class="metric-value numeric">1<\/p>/, response.body)
   end
 
+  test "GET / renders managed running sessions" do
+    workflow = build_managed_workflow(slug: "dashboard-running-session-workflow", name: "Dashboard Running Session Workflow")
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "dashboard-running-session-1", identifier: "DRS-1", title: "Dashboard running session", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+
+    get root_path
+    assert_response :success
+    assert_includes response.body, "DRS-1"
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

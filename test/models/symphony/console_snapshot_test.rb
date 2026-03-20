@@ -46,6 +46,25 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     Symphony::WorkflowRuntimeManager.clear!
   end
 
+  test "build aggregates running entries across managed workflows" do
+    Symphony::WorkflowRuntimeManager.clear!
+    workflow = build_managed_workflow(
+      slug: "console-running-entry-workflow",
+      name: "Console Running Entry Workflow"
+    )
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "console-running-entry-1", identifier: "CRE-1", title: "Console running entry", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+
+    snapshot = Symphony::ConsoleSnapshot.build
+
+    assert_equal "CRE-1", snapshot[:running].first[:issue_identifier]
+  ensure
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   private
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

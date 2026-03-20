@@ -9,6 +9,8 @@ module Symphony
           running: workflow_rows.sum { |row| row[:snapshot][:counts][:running] },
           retrying: workflow_rows.sum { |row| row[:snapshot][:counts][:retrying] }
         },
+        running: workflow_rows.flat_map { |row| row[:snapshot][:running] },
+        retrying: workflow_rows.flat_map { |row| row[:snapshot][:retrying] },
         workflow_rows: workflow_rows
       }
     end

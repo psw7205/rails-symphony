@@ -119,7 +119,7 @@
         </div>
       </div>
 
-      <% if @snapshot[:running].empty? %>
+      <% if @console_snapshot[:running].empty? %>
         <p class="empty-state">No active sessions.</p>
       <% else %>
         <div class="table-wrap">
@@ -133,7 +133,7 @@
               </tr>
             </thead>
             <tbody>
-              <% @snapshot[:running].each do |entry| %>
+              <% @console_snapshot[:running].each do |entry| %>
                 <tr>
                   <td>
                     <div class="issue-stack">
@@ -160,7 +160,7 @@
         </div>
       </div>
 
-      <% if @snapshot[:retrying].empty? %>
+      <% if @console_snapshot[:retrying].empty? %>
         <p class="empty-state">No issues are currently backing off.</p>
       <% else %>
         <div class="table-wrap">
@@ -174,7 +174,7 @@
               </tr>
             </thead>
             <tbody>
-              <% @snapshot[:retrying].each do |entry| %>
+              <% @console_snapshot[:retrying].each do |entry| %>
                 <tr>
                   <td>
                     <div class="issue-stack">
