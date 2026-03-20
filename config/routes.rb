@@ -3,6 +3,7 @@ Rails.application.routes.draw do
 
   # Dashboard
   root "symphony/dashboard#show"
+  get "projects", to: "symphony/projects#index"
 
   # JSON API (SPEC 13.7.2)
   namespace :api do

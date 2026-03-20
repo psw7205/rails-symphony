@@ -1,0 +1,38 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">Projects</h1>
+          <p class="hero-copy">Managed projects currently configured in the admin console.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <% if @projects.empty? %>
+        <p class="empty-state">No projects.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @projects.each do |project| %>
+                <tr>
+                  <td><%= project.name %></td>
+                  <td><%= project.status %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  </section>
+</main>
