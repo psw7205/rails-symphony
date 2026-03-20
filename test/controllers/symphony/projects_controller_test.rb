@@ -58,6 +58,26 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/<td>1<\/td>/, response.body)
   end
 
+  test "GET /projects/new renders the project form" do
+    get "/projects/new"
+    assert_response :success
+    assert_includes response.body, "New project"
+  end
+
+  test "POST /projects creates a managed project" do
+    post "/projects", params: {
+      managed_project: {
+        name: "Created Project",
+        slug: "created-project",
+        status: "active",
+        description: "Created from controller test"
+      }
+    }
+
+    assert_redirected_to "/projects/#{Symphony::ManagedProject.last.id}"
+    assert_equal "Created Project", Symphony::ManagedProject.last.name
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

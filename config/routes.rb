@@ -4,6 +4,8 @@ Rails.application.routes.draw do
   # Dashboard
   root "symphony/dashboard#show"
   get "projects", to: "symphony/projects#index"
+  get "projects/new", to: "symphony/projects#new"
+  post "projects", to: "symphony/projects#create"
   get "projects/:id", to: "symphony/projects#show"
   get "workflows/:id", to: "symphony/workflows#show"
 
