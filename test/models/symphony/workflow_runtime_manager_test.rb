@@ -38,17 +38,33 @@ class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
     assert_equal [], snapshot[:retrying]
   end
 
+  test "global_snapshot returns snapshots for active managed workflows" do
+    first_workflow = build_managed_workflow(
+      slug: "runtime-manager-workflow-one",
+      name: "Runtime Manager Workflow One"
+    )
+    second_workflow = build_managed_workflow(
+      slug: "runtime-manager-workflow-two",
+      name: "Runtime Manager Workflow Two"
+    )
+
+    snapshot = Symphony::WorkflowRuntimeManager.global_snapshot
+
+    assert_equal [ first_workflow.id, second_workflow.id ], snapshot.map { |entry| entry[:managed_workflow].id }.sort
+    assert snapshot.all? { |entry| entry[:snapshot][:counts][:running] == 0 }
+  end
+
   private
-    def build_managed_workflow
-      project = Symphony::ManagedProject.create!(name: "Runtime Manager Project", slug: "runtime-manager-project", status: "active")
+    def build_managed_workflow(slug: "runtime-manager-workflow", name: "Runtime Manager Workflow")
+      project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
-        name: "Runtime Manager Memory",
+        name: "#{name} Memory",
         kind: "memory",
         status: "active",
         config: {}
       )
       agent_connection = Symphony::AgentConnection.create!(
-        name: "Runtime Manager Codex",
+        name: "#{name} Codex",
         kind: "codex",
         status: "active",
         config: {
@@ -60,8 +76,8 @@ class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
         managed_project: project,
         tracker_connection: tracker_connection,
         agent_connection: agent_connection,
-        name: "Runtime Manager Workflow",
-        slug: "runtime-manager-workflow",
+        name: name,
+        slug: slug,
         status: "active",
         prompt_template: "Prompt from runtime manager",
         runtime_config: {
