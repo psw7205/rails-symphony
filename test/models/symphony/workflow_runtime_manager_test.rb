@@ -27,6 +27,17 @@ class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
     assert_equal "updated-runtime-manager-workspaces", refreshed_context.workflow_store.service_config.workspace_root
   end
 
+  test "snapshot returns the workflow specific orchestrator snapshot" do
+    workflow = build_managed_workflow
+
+    snapshot = Symphony::WorkflowRuntimeManager.snapshot(workflow.id)
+
+    assert_equal 0, snapshot[:counts][:running]
+    assert_equal 0, snapshot[:counts][:retrying]
+    assert_equal [], snapshot[:running]
+    assert_equal [], snapshot[:retrying]
+  end
+
   private
     def build_managed_workflow
       project = Symphony::ManagedProject.create!(name: "Runtime Manager Project", slug: "runtime-manager-project", status: "active")

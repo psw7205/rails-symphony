@@ -15,6 +15,10 @@ module Symphony
           @contexts[managed_workflow_id] = WorkflowRuntimeFactory.build(managed_workflow_id)
         end
       end
+
+      def snapshot(managed_workflow_id)
+        fetch(managed_workflow_id).orchestrator.snapshot
+      end
     end
   end
 end
