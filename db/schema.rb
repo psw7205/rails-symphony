@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_20_104500) do
   create_table "symphony_agent_connections", force: :cascade do |t|
     t.json "config"
     t.datetime "created_at", null: false
@@ -45,12 +45,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
     t.text "description"
     t.string "identifier", null: false
     t.json "labels", default: []
+    t.integer "managed_workflow_id"
     t.integer "priority"
+    t.string "source_issue_id"
     t.string "state"
     t.string "title"
+    t.string "tracker_kind"
     t.datetime "updated_at", null: false
     t.string "url"
-    t.index ["identifier"], name: "index_symphony_issues_on_identifier", unique: true
+    t.index ["managed_workflow_id", "source_issue_id"], name: "index_symphony_issues_on_workflow_and_source_issue", unique: true
+    t.index ["managed_workflow_id"], name: "index_symphony_issues_on_managed_workflow_id"
     t.index ["state"], name: "index_symphony_issues_on_state"
   end
 
@@ -103,7 +107,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
     t.float "codex_total_seconds_running", default: 0.0
     t.integer "codex_total_tokens", default: 0
     t.datetime "created_at", null: false
+    t.integer "managed_workflow_id"
     t.datetime "updated_at", null: false
+    t.index ["managed_workflow_id"], name: "index_symphony_orchestrator_states_on_managed_workflow_id"
   end
 
   create_table "symphony_retry_entries", force: :cascade do |t|
@@ -113,8 +119,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
     t.text "error"
     t.string "identifier", null: false
     t.string "issue_id", null: false
+    t.integer "managed_workflow_id"
     t.datetime "updated_at", null: false
     t.index ["issue_id"], name: "index_symphony_retry_entries_on_issue_id", unique: true
+    t.index ["managed_workflow_id"], name: "index_symphony_retry_entries_on_managed_workflow_id"
   end
 
   create_table "symphony_run_attempts", force: :cascade do |t|
@@ -123,12 +131,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
     t.text "error"
     t.datetime "finished_at"
     t.string "issue_id", null: false
+    t.integer "managed_workflow_id"
     t.datetime "started_at"
     t.string "status", default: "pending"
     t.datetime "updated_at", null: false
     t.string "workspace_path"
     t.index ["issue_id", "attempt"], name: "index_symphony_run_attempts_on_issue_id_and_attempt"
     t.index ["issue_id"], name: "index_symphony_run_attempts_on_issue_id"
+    t.index ["managed_workflow_id"], name: "index_symphony_run_attempts_on_managed_workflow_id"
   end
 
   create_table "symphony_tracker_connections", force: :cascade do |t|
@@ -141,8 +151,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
   end
 
   add_foreign_key "symphony_agent_sessions", "symphony_run_attempts", column: "run_attempt_id"
+  add_foreign_key "symphony_issues", "symphony_managed_workflows", column: "managed_workflow_id"
   add_foreign_key "symphony_managed_issues", "symphony_managed_workflows", column: "managed_workflow_id"
   add_foreign_key "symphony_managed_workflows", "symphony_agent_connections", column: "agent_connection_id"
   add_foreign_key "symphony_managed_workflows", "symphony_managed_projects", column: "managed_project_id"
   add_foreign_key "symphony_managed_workflows", "symphony_tracker_connections", column: "tracker_connection_id"
+  add_foreign_key "symphony_orchestrator_states", "symphony_managed_workflows", column: "managed_workflow_id"
+  add_foreign_key "symphony_retry_entries", "symphony_managed_workflows", column: "managed_workflow_id"
+  add_foreign_key "symphony_run_attempts", "symphony_managed_workflows", column: "managed_workflow_id"
 end
