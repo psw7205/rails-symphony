@@ -1,0 +1,45 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title"><%= @project.name %></h1>
+          <p class="hero-copy">Managed workflows and runtime health for this project.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <% if @workflow_rows.empty? %>
+        <p class="empty-state">No workflows.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Status</th>
+                <th>Tracker</th>
+                <th>Running</th>
+                <th>Retrying</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @workflow_rows.each do |row| %>
+                <% workflow = row[:managed_workflow] %>
+                <tr>
+                  <td><%= workflow.name %></td>
+                  <td><%= workflow.status %></td>
+                  <td><%= workflow.tracker_connection.kind %></td>
+                  <td><%= row[:snapshot][:counts][:running] %></td>
+                  <td><%= row[:snapshot][:counts][:retrying] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  </section>
+</main>
