@@ -74,6 +74,23 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "turn_timeout"
   end
 
+  test "GET /workflows/:id renders token and runtime totals" do
+    workflow = build_managed_workflow
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.instance_variable_get(:@codex_totals).merge!(
+      input_tokens: 120,
+      output_tokens: 30,
+      total_tokens: 150,
+      seconds_running: 180.0
+    )
+
+    get "/workflows/#{workflow.id}"
+    assert_response :success
+    assert_includes response.body, "Total tokens"
+    assert_includes response.body, "150"
+    assert_includes response.body, "3m 0s"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

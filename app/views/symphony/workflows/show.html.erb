@@ -30,6 +30,16 @@
         <p class="metric-label">Running</p>
         <p class="metric-value numeric"><%= @snapshot[:counts][:running] %></p>
       </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Total tokens</p>
+        <p class="metric-value numeric"><%= number_with_delimiter(@snapshot[:codex_totals][:total_tokens]) %></p>
+      </article>
+
+      <article class="metric-card">
+        <p class="metric-label">Runtime</p>
+        <p class="metric-value numeric"><%= format_runtime(@snapshot[:codex_totals][:seconds_running]) %></p>
+      </article>
     </section>
 
     <section class="section-card">
