@@ -10,6 +10,7 @@ module Symphony
       @workflow.runtime_config = parsed_runtime_config
 
       if @workflow.save
+        WorkflowRuntimeManager.refresh(@workflow.id)
         redirect_to "/workflows/#{@workflow.id}"
       else
         load_form_dependencies
@@ -28,6 +29,7 @@ module Symphony
       @workflow.runtime_config = parsed_runtime_config
 
       if @workflow.save
+        WorkflowRuntimeManager.refresh(@workflow.id)
         redirect_to "/workflows/#{@workflow.id}"
       else
         load_form_dependencies

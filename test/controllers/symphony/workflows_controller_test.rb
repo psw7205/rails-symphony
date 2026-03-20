@@ -115,6 +115,29 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "updated-workflow-workspaces", workflow.runtime_config["workspace"]["root"]
   end
 
+  test "PATCH /workflows/:id refreshes the cached runtime context" do
+    workflow = build_managed_workflow
+    Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+
+    patch "/workflows/#{workflow.id}", params: {
+      managed_workflow: {
+        managed_project_id: workflow.managed_project_id,
+        tracker_connection_id: workflow.tracker_connection_id,
+        agent_connection_id: workflow.agent_connection_id,
+        name: workflow.name,
+        slug: workflow.slug,
+        status: workflow.status,
+        prompt_template: "Refreshed workflow prompt",
+        runtime_config_json: "{\"workspace\":{\"root\":\"refreshed-workflow-workspaces\"}}"
+      }
+    }
+
+    assert_redirected_to "/workflows/#{workflow.id}"
+    refreshed_context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    assert_equal "Refreshed workflow prompt", refreshed_context.workflow_store.prompt_template
+    assert_equal "refreshed-workflow-workspaces", refreshed_context.workflow_store.service_config.workspace_root
+  end
+
   test "PATCH /workflows/:id renders validation errors" do
     workflow = build_managed_workflow
 
