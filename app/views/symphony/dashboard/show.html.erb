@@ -119,7 +119,9 @@
         </div>
       </div>
 
-      <% if @console_snapshot[:running].empty? %>
+      <% if @console_snapshot[:workflow_rows].empty? %>
+        <p class="empty-state">No active workflows.</p>
+      <% elsif @console_snapshot[:running].empty? %>
         <p class="empty-state">No active sessions.</p>
       <% else %>
         <div class="table-wrap">
@@ -160,7 +162,9 @@
         </div>
       </div>
 
-      <% if @console_snapshot[:retrying].empty? %>
+      <% if @console_snapshot[:workflow_rows].empty? %>
+        <p class="empty-state">No active workflows.</p>
+      <% elsif @console_snapshot[:retrying].empty? %>
         <p class="empty-state">No issues are currently backing off.</p>
       <% else %>
         <div class="table-wrap">

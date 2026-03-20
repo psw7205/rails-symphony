@@ -2,11 +2,13 @@ require "test_helper"
 
 class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
   setup do
+    reset_console_records!
     Symphony::WorkflowRuntimeManager.clear!
   end
 
   teardown do
     Symphony::WorkflowRuntimeManager.clear!
+    reset_console_records!
   end
 
   test "GET / renders dashboard without orchestrator" do
@@ -14,7 +16,8 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
     assert_response :success
     assert_includes response.body, "Operations Dashboard"
-    assert_includes response.body, "No active sessions"
+    assert_includes response.body, "No active workflows."
+    refute_includes response.body, "No active sessions."
   end
 
   test "GET / renders managed workflow rows" do
@@ -88,6 +91,18 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+    def reset_console_records!
+      Symphony::RunAttempt.delete_all
+      Symphony::RetryEntry.delete_all
+      Symphony::PersistedIssue.delete_all
+      Symphony::OrchestratorState.delete_all
+      Symphony::ManagedIssue.delete_all
+      Symphony::ManagedWorkflow.delete_all
+      Symphony::AgentConnection.delete_all
+      Symphony::TrackerConnection.delete_all
+      Symphony::ManagedProject.delete_all
+    end
+
     def build_managed_workflow(slug:, name:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
