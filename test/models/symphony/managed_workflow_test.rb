@@ -92,4 +92,42 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     assert_not workflow.valid?
     assert_includes workflow.errors[:slug], "has already been taken"
   end
+
+  test "allows only active or inactive status" do
+    project = Symphony::ManagedProject.create!(name: "Console", slug: "console-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Database", kind: "database", status: "active")
+    agent_connection = Symphony::AgentConnection.create!(name: "Codex", kind: "codex", status: "active")
+
+    active_workflow = Symphony::ManagedWorkflow.new(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Active",
+      slug: "active-workflow",
+      status: "active"
+    )
+
+    inactive_workflow = Symphony::ManagedWorkflow.new(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Inactive",
+      slug: "inactive-workflow",
+      status: "inactive"
+    )
+
+    invalid_workflow = Symphony::ManagedWorkflow.new(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Archived",
+      slug: "archived-workflow",
+      status: "archived"
+    )
+
+    assert active_workflow.valid?
+    assert inactive_workflow.valid?
+    assert_not invalid_workflow.valid?
+    assert_includes invalid_workflow.errors[:status], "is not included in the list"
+  end
 end
