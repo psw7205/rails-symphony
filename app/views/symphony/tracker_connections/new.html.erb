@@ -1,0 +1,39 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">New tracker connection</h1>
+          <p class="hero-copy">Create a managed tracker connection.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <%= form_with model: @tracker_connection, url: "/tracker_connections" do |form| %>
+        <div>
+          <%= form.label :name %>
+          <%= form.text_field :name %>
+        </div>
+
+        <div>
+          <%= form.label :kind %>
+          <%= form.text_field :kind %>
+        </div>
+
+        <div>
+          <%= form.label :status %>
+          <%= form.select :status, Symphony::TrackerConnection::STATUSES %>
+        </div>
+
+        <div>
+          <%= form.label :config_json, "Config (JSON)" %>
+          <%= form.text_area :config_json %>
+        </div>
+
+        <%= form.submit "Create tracker connection" %>
+      <% end %>
+    </section>
+  </section>
+</main>

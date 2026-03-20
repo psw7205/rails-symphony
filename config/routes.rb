@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   get "projects/new", to: "symphony/projects#new"
   post "projects", to: "symphony/projects#create"
   get "projects/:id", to: "symphony/projects#show"
+  get "tracker_connections/new", to: "symphony/tracker_connections#new"
+  post "tracker_connections", to: "symphony/tracker_connections#create"
   get "workflows/new", to: "symphony/workflows#new"
   post "workflows", to: "symphony/workflows#create"
   get "workflows/:id", to: "symphony/workflows#show"
