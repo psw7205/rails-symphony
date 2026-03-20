@@ -35,6 +35,36 @@ module Api
           tracked: {}
         }
       end
+
+      def show_workflow
+        context = Symphony::WorkflowRuntimeManager.fetch(params[:workflow_id])
+        snapshot = context.orchestrator.snapshot
+        identifier = params[:issue_identifier]
+
+        running = snapshot[:running].find { |r| r[:issue_identifier] == identifier }
+        retrying = snapshot[:retrying].find { |r| r[:issue_identifier] == identifier }
+
+        unless running || retrying
+          return render json: { error: { code: "issue_not_found", message: "Issue not found" } }, status: 404
+        end
+
+        render json: {
+          issue_identifier: identifier,
+          issue_id: running&.dig(:issue_id) || retrying&.dig(:issue_id),
+          status: running ? "running" : "retrying",
+          workspace: { path: context.workspace.workspace_path(identifier) },
+          attempts: {
+            restart_count: [ (retrying&.dig(:attempt) || 0) - 1, 0 ].max,
+            current_retry_attempt: retrying&.dig(:attempt) || 0
+          },
+          running: running,
+          retry: retrying,
+          logs: { codex_session_logs: [] },
+          recent_events: [],
+          last_error: retrying&.dig(:error),
+          tracked: {}
+        }
+      end
     end
   end
 end

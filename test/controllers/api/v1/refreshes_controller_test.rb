@@ -3,6 +3,7 @@ require "tmpdir"
 
 class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
   setup do
+    Symphony::WorkflowRuntimeManager.clear!
     @root = Dir.mktmpdir("api_refresh_test")
     workflow_file = File.join(@root, "WORKFLOW.md")
     File.write(workflow_file, "---\ntracker:\n  kind: linear\n  api_key: test\n  project_slug: proj\n---\nPrompt")
@@ -19,6 +20,7 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
+    Symphony::WorkflowRuntimeManager.clear!
     Symphony.orchestrator = nil
     FileUtils.rm_rf(@root)
   end

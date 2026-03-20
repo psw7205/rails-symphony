@@ -5,12 +5,14 @@ module Symphony
 
     class << self
       def fetch(managed_workflow_id)
+        managed_workflow_id = normalize_workflow_id(managed_workflow_id)
         @mutex.synchronize do
           @contexts[managed_workflow_id] ||= WorkflowRuntimeFactory.build(managed_workflow_id)
         end
       end
 
       def refresh(managed_workflow_id)
+        managed_workflow_id = normalize_workflow_id(managed_workflow_id)
         @mutex.synchronize do
           @contexts[managed_workflow_id] = WorkflowRuntimeFactory.build(managed_workflow_id)
         end
@@ -26,6 +28,22 @@ module Symphony
           { managed_workflow: context.managed_workflow, snapshot: context.orchestrator.snapshot }
         end
       end
+
+      def clear!(managed_workflow_id = nil)
+        @mutex.synchronize do
+          if managed_workflow_id.nil?
+            @contexts.clear
+          else
+            managed_workflow_id = normalize_workflow_id(managed_workflow_id)
+            @contexts.delete(managed_workflow_id)
+          end
+        end
+      end
+
+      private
+        def normalize_workflow_id(managed_workflow_id)
+          managed_workflow_id.to_i
+        end
     end
   end
 end

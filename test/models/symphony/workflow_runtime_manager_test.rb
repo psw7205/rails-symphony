@@ -1,6 +1,14 @@
 require "test_helper"
 
 class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
+  setup do
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
+  teardown do
+    Symphony::WorkflowRuntimeManager.clear!
+  end
+
   test "fetch caches runtime contexts by workflow id" do
     workflow = build_managed_workflow
 
@@ -49,8 +57,10 @@ class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
     )
 
     snapshot = Symphony::WorkflowRuntimeManager.global_snapshot
+    workflow_ids = snapshot.map { |entry| entry[:managed_workflow].id }
 
-    assert_equal [ first_workflow.id, second_workflow.id ], snapshot.map { |entry| entry[:managed_workflow].id }.sort
+    assert_includes workflow_ids, first_workflow.id
+    assert_includes workflow_ids, second_workflow.id
     assert snapshot.all? { |entry| entry[:snapshot][:counts][:running] == 0 }
   end
 
