@@ -31,6 +31,19 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "bin/codex app-server", connection.config["codex"]["command"]
   end
 
+  test "POST /agent_connections renders validation errors" do
+    post "/agent_connections", params: {
+      agent_connection: {
+        name: "",
+        kind: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
