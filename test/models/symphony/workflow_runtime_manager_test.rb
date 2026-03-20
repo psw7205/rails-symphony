@@ -11,6 +11,22 @@ class Symphony::WorkflowRuntimeManagerTest < ActiveSupport::TestCase
     assert_same first_context, second_context
   end
 
+  test "refresh rebuilds the cached runtime context" do
+    workflow = build_managed_workflow
+
+    original_context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    workflow.update!(
+      prompt_template: "Updated runtime manager prompt",
+      runtime_config: { workspace: { root: "updated-runtime-manager-workspaces" } }
+    )
+
+    refreshed_context = Symphony::WorkflowRuntimeManager.refresh(workflow.id)
+
+    refute_same original_context, refreshed_context
+    assert_equal "Updated runtime manager prompt", refreshed_context.workflow_store.prompt_template
+    assert_equal "updated-runtime-manager-workspaces", refreshed_context.workflow_store.service_config.workspace_root
+  end
+
   private
     def build_managed_workflow
       project = Symphony::ManagedProject.create!(name: "Runtime Manager Project", slug: "runtime-manager-project", status: "active")
