@@ -15,6 +15,8 @@ Rails.application.routes.draw do
   post "tracker_connections", to: "symphony/tracker_connections#create"
   get "workflows/new", to: "symphony/workflows#new"
   post "workflows", to: "symphony/workflows#create"
+  get "workflows/:id/edit", to: "symphony/workflows#edit"
+  patch "workflows/:id", to: "symphony/workflows#update"
   get "workflows/:id", to: "symphony/workflows#show"
 
   # JSON API (SPEC 13.7.2)

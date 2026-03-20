@@ -17,6 +17,24 @@ module Symphony
       end
     end
 
+    def edit
+      @workflow = ManagedWorkflow.find(params[:id])
+      load_form_dependencies
+    end
+
+    def update
+      @workflow = ManagedWorkflow.find(params[:id])
+      @workflow.assign_attributes(workflow_params)
+      @workflow.runtime_config = parsed_runtime_config
+
+      if @workflow.save
+        redirect_to "/workflows/#{@workflow.id}"
+      else
+        load_form_dependencies
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
     def show
       @workflow = ManagedWorkflow.includes(:managed_project, :tracker_connection, :agent_connection).find(params[:id])
       @snapshot = WorkflowRuntimeManager.snapshot(@workflow.id)

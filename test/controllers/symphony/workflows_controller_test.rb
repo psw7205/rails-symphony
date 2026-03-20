@@ -80,6 +80,41 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "GET /workflows/:id/edit renders the workflow form" do
+    workflow = build_managed_workflow
+
+    get "/workflows/#{workflow.id}/edit"
+    assert_response :success
+    assert_includes response.body, "Edit workflow"
+    assert_includes response.body, "Workflow Alpha"
+  end
+
+  test "PATCH /workflows/:id updates a managed workflow" do
+    workflow = build_managed_workflow
+    other_project = Symphony::ManagedProject.create!(name: "Workflow Beta Project", slug: "workflow-beta-project", status: "active")
+    other_tracker_connection = Symphony::TrackerConnection.create!(name: "Workflow Beta Tracker", kind: "linear", status: "active", config: {})
+    other_agent_connection = Symphony::AgentConnection.create!(name: "Workflow Beta Agent", kind: "codex", status: "active", config: {})
+
+    patch "/workflows/#{workflow.id}", params: {
+      managed_workflow: {
+        managed_project_id: other_project.id,
+        tracker_connection_id: other_tracker_connection.id,
+        agent_connection_id: other_agent_connection.id,
+        name: "Updated Workflow",
+        slug: "updated-workflow",
+        status: "inactive",
+        prompt_template: "Updated workflow prompt",
+        runtime_config_json: "{\"workspace\":{\"root\":\"updated-workflow-workspaces\"}}"
+      }
+    }
+
+    assert_redirected_to "/workflows/#{workflow.id}"
+    workflow.reload
+    assert_equal "Updated Workflow", workflow.name
+    assert_equal "inactive", workflow.status
+    assert_equal "updated-workflow-workspaces", workflow.runtime_config["workspace"]["root"]
+  end
+
   test "GET /workflows/:id renders workflow retry rows" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
