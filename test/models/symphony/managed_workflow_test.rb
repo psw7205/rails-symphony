@@ -65,4 +65,31 @@ class Symphony::ManagedWorkflowTest < ActiveSupport::TestCase
     assert_includes workflow.errors[:slug], "can't be blank"
     assert_includes workflow.errors[:status], "can't be blank"
   end
+
+  test "requires a unique slug" do
+    project = Symphony::ManagedProject.create!(name: "Ops", slug: "ops", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "GitHub", kind: "github", status: "active")
+    agent_connection = Symphony::AgentConnection.create!(name: "Claude", kind: "claude_code", status: "active")
+
+    Symphony::ManagedWorkflow.create!(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Primary",
+      slug: "console",
+      status: "active"
+    )
+
+    workflow = Symphony::ManagedWorkflow.new(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Secondary",
+      slug: "console",
+      status: "active"
+    )
+
+    assert_not workflow.valid?
+    assert_includes workflow.errors[:slug], "has already been taken"
+  end
 end

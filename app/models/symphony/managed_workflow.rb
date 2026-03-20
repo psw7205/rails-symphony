@@ -7,5 +7,6 @@ module Symphony
     belongs_to :agent_connection, class_name: "Symphony::AgentConnection"
 
     validates :name, :slug, :status, presence: true
+    validates :slug, uniqueness: true
   end
 end
