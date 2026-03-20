@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_19_090200) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_20_090000) do
   create_table "symphony_agent_connections", force: :cascade do |t|
     t.json "config"
     t.datetime "created_at", null: false
@@ -64,6 +64,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_19_090200) do
     t.index ["slug"], name: "index_symphony_managed_projects_on_slug", unique: true
   end
 
+  create_table "symphony_managed_workflows", force: :cascade do |t|
+    t.integer "agent_connection_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "managed_project_id", null: false
+    t.string "name", null: false
+    t.text "prompt_template"
+    t.json "runtime_config"
+    t.string "slug", null: false
+    t.string "status", null: false
+    t.integer "tracker_connection_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_connection_id"], name: "index_symphony_managed_workflows_on_agent_connection_id"
+    t.index ["managed_project_id"], name: "index_symphony_managed_workflows_on_managed_project_id"
+    t.index ["slug"], name: "index_symphony_managed_workflows_on_slug", unique: true
+    t.index ["tracker_connection_id"], name: "index_symphony_managed_workflows_on_tracker_connection_id"
+  end
+
   create_table "symphony_orchestrator_states", force: :cascade do |t|
     t.json "codex_rate_limits"
     t.integer "codex_total_input_tokens", default: 0
@@ -109,4 +126,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_19_090200) do
   end
 
   add_foreign_key "symphony_agent_sessions", "symphony_run_attempts", column: "run_attempt_id"
+  add_foreign_key "symphony_managed_workflows", "symphony_agent_connections", column: "agent_connection_id"
+  add_foreign_key "symphony_managed_workflows", "symphony_managed_projects", column: "managed_project_id"
+  add_foreign_key "symphony_managed_workflows", "symphony_tracker_connections", column: "tracker_connection_id"
 end
