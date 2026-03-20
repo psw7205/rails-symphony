@@ -1,6 +1,8 @@
 require "yaml"
 
 module Symphony
+  # File-backed WORKFLOW.md parser kept for legacy mode. This is intentionally
+  # distinct from the DB-backed Symphony::ManagedWorkflow model.
   class Workflow
     def self.load(path)
       unless File.exist?(path)

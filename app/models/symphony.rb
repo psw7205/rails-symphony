@@ -1,10 +1,14 @@
 module Symphony
+  # Legacy file-mode globals. Managed DB-backed runtimes should be constructed
+  # through workflow-scoped factories/managers instead of these accessors.
   mattr_accessor :orchestrator, :tracker, :workspace, :agent, :workflow_store
 
   def self.config
     workflow_store&.service_config
   end
 
+  # Legacy file-backed boot path for WORKFLOW.md. Managed mode should use a
+  # separate workflow-scoped runtime entrypoint.
   def self.boot!(workflow_path:, logs_root: nil, port: nil)
     Rails.logger.info("[Symphony] Booting with workflow=#{workflow_path}")
 
