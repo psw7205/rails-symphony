@@ -27,4 +27,49 @@ class Symphony::ManagedIssueTest < ActiveSupport::TestCase
     assert_not_nil association
     assert_equal :belongs_to, association.macro
   end
+
+  test "is valid for database tracker workflows" do
+    project = Symphony::ManagedProject.create!(name: "Console", slug: "console-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Database", kind: "database", status: "active")
+    agent_connection = Symphony::AgentConnection.create!(name: "Codex", kind: "codex", status: "active")
+    workflow = Symphony::ManagedWorkflow.create!(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Database Workflow",
+      slug: "database-workflow",
+      status: "active"
+    )
+
+    managed_issue = Symphony::ManagedIssue.new(
+      managed_workflow: workflow,
+      identifier: "DB-1",
+      title: "Database issue"
+    )
+
+    assert managed_issue.valid?
+  end
+
+  test "rejects workflows without a database tracker connection" do
+    project = Symphony::ManagedProject.create!(name: "Platform", slug: "platform-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(name: "Linear", kind: "linear", status: "active")
+    agent_connection = Symphony::AgentConnection.create!(name: "Codex", kind: "codex", status: "active")
+    workflow = Symphony::ManagedWorkflow.create!(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Linear Workflow",
+      slug: "linear-workflow",
+      status: "active"
+    )
+
+    managed_issue = Symphony::ManagedIssue.new(
+      managed_workflow: workflow,
+      identifier: "LIN-1",
+      title: "Linear issue"
+    )
+
+    assert_not managed_issue.valid?
+    assert_includes managed_issue.errors[:managed_workflow], "must use a database tracker connection"
+  end
 end
