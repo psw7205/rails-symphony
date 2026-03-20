@@ -53,6 +53,7 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
     assert_response :success
     assert_includes response.body, "DRS-1"
+    assert_includes response.body, "/api/v1/workflows/#{workflow.id}/issues/DRS-1"
   end
 
   test "GET / renders token and runtime metrics from managed workflow totals" do

@@ -15,8 +15,16 @@ module Symphony
           total_tokens: workflow_rows.sum { |row| row[:snapshot][:codex_totals][:total_tokens] || 0 },
           seconds_running: workflow_rows.sum { |row| row[:snapshot][:codex_totals][:seconds_running] || 0.0 }
         },
-        running: workflow_rows.flat_map { |row| row[:snapshot][:running] },
-        retrying: workflow_rows.flat_map { |row| row[:snapshot][:retrying] },
+        running: workflow_rows.flat_map do |row|
+          row[:snapshot][:running].map do |entry|
+            entry.merge(managed_workflow_id: row[:managed_workflow].id)
+          end
+        end,
+        retrying: workflow_rows.flat_map do |row|
+          row[:snapshot][:retrying].map do |entry|
+            entry.merge(managed_workflow_id: row[:managed_workflow].id)
+          end
+        end,
         workflow_rows: workflow_rows
       }
     end

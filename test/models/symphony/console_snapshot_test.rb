@@ -61,6 +61,7 @@ class Symphony::ConsoleSnapshotTest < ActiveSupport::TestCase
     snapshot = Symphony::ConsoleSnapshot.build
 
     assert_equal "CRE-1", snapshot[:running].first[:issue_identifier]
+    assert_equal workflow.id, snapshot[:running].first[:managed_workflow_id]
   ensure
     Symphony::WorkflowRuntimeManager.clear!
   end
