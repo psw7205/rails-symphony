@@ -10,6 +10,7 @@ Rails.application.routes.draw do
       resource :state, only: :show
       resource :refresh, only: :create
       get ":issue_identifier", to: "issues#show", as: :issue
+      get "workflows/:workflow_id/state", to: "states#show_workflow", as: :workflow_state
     end
   end
 end

@@ -10,6 +10,10 @@ module Api
           render json: { error: { code: "orchestrator_unavailable", message: "Orchestrator is not running" } }, status: 503
         end
       end
+
+      def show_workflow
+        render json: Symphony::WorkflowRuntimeManager.snapshot(params[:workflow_id])
+      end
     end
   end
 end

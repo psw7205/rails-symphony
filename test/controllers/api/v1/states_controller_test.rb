@@ -48,4 +48,43 @@ class Api::V1::StatesControllerTest < ActionDispatch::IntegrationTest
     body = JSON.parse(response.body)
     assert_equal "orchestrator_unavailable", body["error"]["code"]
   end
+
+  test "GET /api/v1/workflows/:workflow_id/state returns the workflow snapshot" do
+    workflow = build_managed_workflow
+
+    get "/api/v1/workflows/#{workflow.id}/state"
+    assert_response :success
+
+    body = JSON.parse(response.body)
+    assert_equal 0, body["counts"]["running"]
+    assert_equal 0, body["counts"]["retrying"]
+  end
+
+  private
+    def build_managed_workflow
+      project = Symphony::ManagedProject.create!(name: "API State Project", slug: "api-state-project", status: "active")
+      tracker_connection = Symphony::TrackerConnection.create!(
+        name: "API State Memory",
+        kind: "memory",
+        status: "active",
+        config: {}
+      )
+      agent_connection = Symphony::AgentConnection.create!(
+        name: "API State Codex",
+        kind: "codex",
+        status: "active",
+        config: { codex: { command: "bin/codex app-server" } }
+      )
+
+      Symphony::ManagedWorkflow.create!(
+        managed_project: project,
+        tracker_connection: tracker_connection,
+        agent_connection: agent_connection,
+        name: "API State Workflow",
+        slug: "api-state-workflow",
+        status: "active",
+        prompt_template: "State prompt",
+        runtime_config: { workspace: { root: "api-state-workspaces" } }
+      )
+    end
 end
