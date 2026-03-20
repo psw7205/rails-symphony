@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_20_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_20_101500) do
   create_table "symphony_agent_connections", force: :cascade do |t|
     t.json "config"
     t.datetime "created_at", null: false
@@ -52,6 +52,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_090000) do
     t.string "url"
     t.index ["identifier"], name: "index_symphony_issues_on_identifier", unique: true
     t.index ["state"], name: "index_symphony_issues_on_state"
+  end
+
+  create_table "symphony_managed_issues", force: :cascade do |t|
+    t.json "blocked_by"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "identifier", null: false
+    t.json "labels"
+    t.integer "managed_workflow_id", null: false
+    t.json "metadata"
+    t.string "priority"
+    t.string "state"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["managed_workflow_id"], name: "index_symphony_managed_issues_on_managed_workflow_id"
   end
 
   create_table "symphony_managed_projects", force: :cascade do |t|
@@ -126,6 +141,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_090000) do
   end
 
   add_foreign_key "symphony_agent_sessions", "symphony_run_attempts", column: "run_attempt_id"
+  add_foreign_key "symphony_managed_issues", "symphony_managed_workflows", column: "managed_workflow_id"
   add_foreign_key "symphony_managed_workflows", "symphony_agent_connections", column: "agent_connection_id"
   add_foreign_key "symphony_managed_workflows", "symphony_managed_projects", column: "managed_project_id"
   add_foreign_key "symphony_managed_workflows", "symphony_tracker_connections", column: "tracker_connection_id"
