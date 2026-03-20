@@ -2,8 +2,8 @@ module Symphony
   class AgentWorkerJob < ApplicationJob
     queue_as :symphony_agents
 
-    def perform(issue_id:, issue_identifier:, issue_title:, issue_state:, attempt: nil)
-      issue = restore_issue(issue_id, issue_identifier, issue_title, issue_state)
+    def perform(issue_id:, issue_identifier:, issue_title:, issue_state:, attempt: nil, managed_workflow_id: nil)
+      issue = restore_issue(issue_id, issue_identifier, issue_title, issue_state, managed_workflow_id)
 
       runner = AgentRunner.new(
         tracker: Symphony.tracker,
@@ -29,11 +29,17 @@ module Symphony
 
     private
 
-      def restore_issue(issue_id, issue_identifier, issue_title, issue_state)
-        pi = PersistedIssue.find_by(id: issue_id)
+      def restore_issue(issue_id, issue_identifier, issue_title, issue_state, managed_workflow_id = nil)
+        persisted_issue_id = if managed_workflow_id.present?
+          "#{managed_workflow_id}:#{issue_id}"
+        else
+          issue_id
+        end
+
+        pi = PersistedIssue.find_by(id: persisted_issue_id)
         if pi
           Issue.new(
-            id: pi.id, identifier: pi.identifier, title: pi.title,
+            id: pi.source_issue_id.presence || issue_id, identifier: pi.identifier, title: pi.title,
             description: pi.description, priority: pi.priority, state: pi.state,
             branch_name: pi.branch_name, url: pi.url,
             labels: pi.labels || [], blocked_by: pi.blocked_by || [],
