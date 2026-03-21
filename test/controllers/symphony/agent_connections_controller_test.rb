@@ -44,6 +44,45 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "GET /agent_connections/:id/edit renders the agent connection form" do
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Editable Codex Connection",
+      kind: "codex",
+      status: "active",
+      config: { "codex" => { "command" => "bin/codex app-server" } }
+    )
+
+    get "/agent_connections/#{agent_connection.id}/edit"
+    assert_response :success
+    assert_includes response.body, "Edit agent connection"
+    assert_includes response.body, "Editable Codex Connection"
+  end
+
+  test "PATCH /agent_connections/:id updates an agent connection" do
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Editable Codex Connection",
+      kind: "codex",
+      status: "active",
+      config: { "codex" => { "command" => "bin/codex app-server" } }
+    )
+
+    patch "/agent_connections/#{agent_connection.id}", params: {
+      agent_connection: {
+        name: "Updated Codex Connection",
+        kind: "codex",
+        status: "inactive",
+        config_json: "{\"codex\":{\"command\":\"bin/codex worker\"}}"
+      }
+    }
+
+    assert_redirected_to "/projects"
+    agent_connection.reload
+    assert_equal "Updated Codex Connection", agent_connection.name
+    assert_equal "codex", agent_connection.kind
+    assert_equal "inactive", agent_connection.status
+    assert_equal "bin/codex worker", agent_connection.config["codex"]["command"]
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

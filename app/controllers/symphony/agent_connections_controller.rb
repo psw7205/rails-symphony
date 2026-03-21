@@ -15,6 +15,22 @@ module Symphony
       end
     end
 
+    def edit
+      @agent_connection = AgentConnection.find(params[:id])
+    end
+
+    def update
+      @agent_connection = AgentConnection.find(params[:id])
+      @agent_connection.assign_attributes(agent_connection_params)
+      @agent_connection.config = parsed_config
+
+      if @agent_connection.save
+        redirect_to "/projects"
+      else
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
     private
       def agent_connection_params
         params.require(:agent_connection).permit(:name, :kind, :status)

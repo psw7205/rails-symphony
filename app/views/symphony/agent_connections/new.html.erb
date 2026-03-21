@@ -10,38 +10,6 @@
       </div>
     </header>
 
-    <section class="section-card">
-      <% if @agent_connection.errors.any? %>
-        <div class="empty-state">
-          <% @agent_connection.errors.full_messages.each do |message| %>
-            <p><%= message %></p>
-          <% end %>
-        </div>
-      <% end %>
-
-      <%= form_with model: @agent_connection, url: "/agent_connections" do |form| %>
-        <div>
-          <%= form.label :name %>
-          <%= form.text_field :name %>
-        </div>
-
-        <div>
-          <%= form.label :kind %>
-          <%= form.text_field :kind %>
-        </div>
-
-        <div>
-          <%= form.label :status %>
-          <%= form.select :status, Symphony::AgentConnection::STATUSES %>
-        </div>
-
-        <div>
-          <%= form.label :config_json, "Config (JSON)" %>
-          <%= form.text_area :config_json %>
-        </div>
-
-        <%= form.submit "Create agent connection" %>
-      <% end %>
-    </section>
+    <%= render "form", agent_connection: @agent_connection, url: "/agent_connections", method: :post, submit_label: "Create agent connection" %>
   </section>
 </main>
