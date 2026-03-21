@@ -16,9 +16,6 @@ Rails 8 + SQLite + Solid Queue 기반 Symphony 구현체.
   - The implementation must not conflict with the spec.
   - If implementation changes meaningfully alter the intended behavior, update the spec in the same
     change where practical so the spec stays current.
-- Frontend defaults to Rails 8 conventions used in this app: ERB + Turbo + Stimulus + Importmap + Propshaft.
-- Prefer vanilla Rails patterns over SPA-first, API-first, or service-heavy designs.
-- Treat frontend stack changes as architectural changes, not implementation details.
 - All domain models live under `Symphony::` namespace (`app/models/symphony/`).
 - Prefer adding config access through `Symphony::ServiceConfig` instead of ad-hoc env reads.
 - Workspace safety is critical:
@@ -39,10 +36,7 @@ bin/rails test
 
 - Keep changes narrowly scoped; avoid unrelated refactors.
 - Follow existing module/style patterns in `app/models/symphony/`, `app/jobs/symphony/`.
-- Match Rails conventions: thin controllers, domain logic in models/domain objects, jobs only for async boundaries.
-- Default to server-rendered HTML. Use Turbo for navigation/partial updates and Stimulus for small client-side interactions.
-- Do not introduce React, Vue, Svelte, Vite, esbuild, Webpack, or new Node-centric frontend tooling without explicit architectural approval.
-- Do not expand JSON APIs as the default integration boundary for first-party UI unless the requirement clearly needs it.
+- Match Rails conventions: thin controllers, domain logic in models/services.
 
 
 ## Docs Update Policy
@@ -51,4 +45,3 @@ If behavior/config changes, update docs in the same PR:
 
 - `README.md` for project concept and goals.
 - `docs/` for design decisions and plans.
-- Keep [docs/guides/2026-03-19-rails-8-development-guardrails-draft.md](/Users/hc/Repository/rails/rails-symphony/docs/guides/2026-03-19-rails-8-development-guardrails-draft.md) as the reference guide for Rails 8 frontend and architecture guardrails.
