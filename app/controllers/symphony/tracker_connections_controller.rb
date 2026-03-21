@@ -15,6 +15,22 @@ module Symphony
       end
     end
 
+    def edit
+      @tracker_connection = TrackerConnection.find(params[:id])
+    end
+
+    def update
+      @tracker_connection = TrackerConnection.find(params[:id])
+      @tracker_connection.assign_attributes(tracker_connection_params)
+      @tracker_connection.config = parsed_config
+
+      if @tracker_connection.save
+        redirect_to "/projects"
+      else
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
     private
       def tracker_connection_params
         params.require(:tracker_connection).permit(:name, :kind, :status)

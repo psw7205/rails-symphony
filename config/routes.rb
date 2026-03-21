@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   post "agent_connections", to: "symphony/agent_connections#create"
   get "tracker_connections/new", to: "symphony/tracker_connections#new"
   post "tracker_connections", to: "symphony/tracker_connections#create"
+  get "tracker_connections/:id/edit", to: "symphony/tracker_connections#edit"
+  patch "tracker_connections/:id", to: "symphony/tracker_connections#update"
   get "workflows/new", to: "symphony/workflows#new"
   post "workflows", to: "symphony/workflows#create"
   get "workflows/:id/edit", to: "symphony/workflows#edit"

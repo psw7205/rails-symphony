@@ -1,0 +1,15 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">Edit tracker connection</h1>
+          <p class="hero-copy">Update this managed tracker connection.</p>
+        </div>
+      </div>
+    </header>
+
+    <%= render "form", tracker_connection: @tracker_connection, url: "/tracker_connections/#{@tracker_connection.id}", method: :patch, submit_label: "Update tracker connection" %>
+  </section>
+</main>
