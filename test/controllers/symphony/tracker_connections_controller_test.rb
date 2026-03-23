@@ -83,6 +83,26 @@ class Symphony::TrackerConnectionsControllerTest < ActionDispatch::IntegrationTe
     assert_equal "symphony_managed_issues", tracker_connection.config["table"]
   end
 
+  test "PATCH /tracker_connections/:id renders validation errors" do
+    tracker_connection = Symphony::TrackerConnection.create!(
+      name: "Editable Linear Connection",
+      kind: "linear",
+      status: "active",
+      config: { "project_slug" => "OPS" }
+    )
+
+    patch "/tracker_connections/#{tracker_connection.id}", params: {
+      tracker_connection: {
+        name: "",
+        kind: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
