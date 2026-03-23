@@ -4,7 +4,7 @@
 
 **Goal:** 외부 tracker 없이 admin console 안에서 이슈를 직접 관리하는 DB 기반 tracker (`tracker.kind: database`)를 제공한다.
 
-**Relationship to the multi-project console plan:** 이 문서는 `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`의 database tracker slice를 보조한다. 구현 source of truth는 `ManagedWorkflow` + `ManagedIssue` 기반 멀티-workflow 콘솔 모델이다.
+**Relationship to the multi-project console plan:** 이 문서는 `docs/_archive/2026-03-19-multi-project-admin-console-implementation.md`의 database tracker slice를 보조한다. 구현 source of truth는 `ManagedWorkflow` + `ManagedIssue` 기반 멀티-workflow 콘솔 모델이다.
 
 **Architecture:** `Trackers::Database`는 더 이상 runtime bookkeeping 테이블(`symphony_issues`)을 재사용하지 않는다. 대신 `symphony_managed_issues` / `Symphony::ManagedIssue`를 database tracker workflow의 ledger로 사용하고, 모든 read/write는 `managed_workflow_id`로 스코프한다. 어드민 UI는 전역 issues 화면이 아니라 workflow-scoped `ManagedIssuesController` (`/workflows/:workflow_id/issues`)를 통해 CRUD를 제공한다. runtime wiring은 `WorkflowRuntimeFactory`가 `tracker.kind: database`인 workflow에 대해 `Trackers::Database.new(managed_workflow: ...)`를 구성한다.
 
@@ -119,9 +119,9 @@ Expected: PASS
 ## Task 5: Verification and docs sync
 
 **Files:**
-- `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`
-- `docs/plans/2026-03-19-multi-project-admin-console-design.md`
-- `docs/plans/2026-03-13-tracker-database.md`
+- `docs/_archive/2026-03-19-multi-project-admin-console-implementation.md`
+- `docs/_archive/2026-03-19-multi-project-admin-console-design.md`
+- `docs/_archive/2026-03-13-tracker-database.md`
 
 ### Steps
 

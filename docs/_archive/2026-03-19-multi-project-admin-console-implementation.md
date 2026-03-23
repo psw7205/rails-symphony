@@ -12,10 +12,10 @@
 
 ## Base Inputs
 
-- Base design: `docs/plans/2026-03-19-multi-project-admin-console-design.md`
+- Base design: `docs/_archive/2026-03-19-multi-project-admin-console-design.md`
 - Related tracker plans:
-  - `docs/plans/2026-03-13-tracker-database.md`
-  - `docs/plans/2026-03-13-tracker-github-issues.md`
+  - `docs/_archive/2026-03-13-tracker-database.md`
+  - `docs/_archive/2026-03-13-tracker-github-issues.md`
 
 ## Locked Decisions
 
@@ -26,7 +26,7 @@
 - `symphony_issues.id` string PK는 당장 유지하고, workflow 간 충돌을 피하기 위해 `source_issue_id`를 별도 저장한다.
 - credential은 v1에서 DB encrypted secret store를 도입하지 않고 env var reference 또는 opaque string만 저장한다.
 - v1 범위는 `linear` 조회/동기화, `database` full CRUD, poll trigger, 무인증 단일 사용자 콘솔까지다.
-- `github` tracker는 capability plumbing 이후 별도 plan (`2026-03-13-tracker-github-issues.md`)에 따라 붙인다.
+- `github` tracker는 capability plumbing 이후 별도 plan (`docs/_archive/2026-03-13-tracker-github-issues.md`)에 따라 붙인다.
 
 ## Success Criteria
 
@@ -346,7 +346,7 @@ Expected: PASS
 - [x] `Trackers::Database`는 `ManagedIssue`를 source of truth로 사용하고 full CRUD capability 반환
 - [x] workflow detail 화면에서 capability badge와 action button 노출을 capability 기준으로 분기
 - [x] `ManagedIssuesController`는 `database` tracker workflow에서만 쓰기 액션 허용, 아니면 404 또는 422 처리
-- [x] `docs/plans/2026-03-13-tracker-database.md`의 구현 범위를 `ManagedIssue` 기준으로 맞춰 필요한 차이를 반영한다
+- [x] `docs/_archive/2026-03-13-tracker-database.md`의 구현 범위를 `ManagedIssue` 기준으로 맞춰 필요한 차이를 반영한다
 
 Run: `bin/rails test test/models/symphony/trackers/database_test.rb test/controllers/symphony/managed_issues_controller_test.rb`
 Expected: PASS
@@ -356,7 +356,7 @@ Expected: PASS
 **Files:**
 - Modify: `app/models/symphony/service_config.rb`
 - Modify: `app/models/symphony/workflow_runtime_factory.rb`
-- Follow existing plan: `docs/plans/2026-03-13-tracker-github-issues.md`
+- Follow existing plan: `docs/_archive/2026-03-13-tracker-github-issues.md`
 
 ### Steps
 
@@ -375,7 +375,7 @@ Expected: PASS
 - Create: `lib/tasks/symphony/import_workflow.rake`
 - Create: `test/tasks/symphony/import_workflow_task_test.rb`
 - Modify: `README.md`
-- Modify: `docs/plans/2026-03-19-multi-project-admin-console-design.md`
+- Modify: `docs/_archive/2026-03-19-multi-project-admin-console-design.md`
 
 ### Steps
 

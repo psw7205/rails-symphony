@@ -4,8 +4,8 @@
 
 Rails Symphony를 단일 workflow runtime 대시보드에서, 여러 project/workflow를 한곳에서 관리하는 멀티-프로젝트 어드민 콘솔로 확장한다.
 
-상세 실행 계획은 `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`를 따른다.
-database tracker 세부 계획은 `docs/plans/2026-03-13-tracker-database.md`를 따른다.
+상세 실행 계획은 `docs/_archive/2026-03-19-multi-project-admin-console-implementation.md`를 따른다.
+database tracker 세부 계획은 `docs/_archive/2026-03-13-tracker-database.md`를 따른다.
 
 핵심 방향은 다음과 같다.
 

@@ -8,6 +8,8 @@
 
 **Tech Stack:** Ruby, Rails 8, Minitest
 
+**Status (2026-03-23):** Chunk 1은 구현 완료. Chunk 2 SSH Worker Extension은 현재 로드맵에서 제외되어 deferred 상태로 남긴다.
+
 ---
 
 ## Chunk 1: 정규화 단순화 + comma-separated string 제거
@@ -19,7 +21,7 @@
 - Modify: `app/models/symphony/service_config.rb:125-131` (String 분기 제거)
 - Modify: `test/models/symphony/service_config_test.rb:55-60` (comma-separated 테스트 제거)
 
-- [ ] **Step 1: 테스트 수정 — comma-separated string 테스트를 Array-only 테스트로 교체**
+- [x] **Step 1: 테스트 수정 — comma-separated string 테스트를 Array-only 테스트로 교체**
 
 `test/models/symphony/service_config_test.rb`의 `parses comma-separated state strings` 테스트를 삭제하고, Array 입력만 허용하는 테스트로 교체:
 
@@ -39,12 +41,12 @@ test "falls back to default when active_states is a string" do
 end
 ```
 
-- [ ] **Step 2: 테스트 실행 — String 분기가 아직 있으므로 두 번째 테스트 실패 확인**
+- [x] **Step 2: 테스트 실행 — String 분기가 아직 있으므로 두 번째 테스트 실패 확인**
 
 Run: `bin/rails test test/models/symphony/service_config_test.rb -v`
 Expected: `falls back to default when active_states is a string` FAIL
 
-- [ ] **Step 3: `parse_state_list`에서 String 분기 제거**
+- [x] **Step 3: `parse_state_list`에서 String 분기 제거**
 
 `app/models/symphony/service_config.rb:125-131`을:
 
@@ -57,7 +59,7 @@ def parse_state_list(raw, default)
 end
 ```
 
-- [ ] **Step 4: `max_concurrent_agents_by_state`에서 `.strip` 제거**
+- [x] **Step 4: `max_concurrent_agents_by_state`에서 `.strip` 제거**
 
 `app/models/symphony/service_config.rb:53`:
 ```ruby
@@ -75,7 +77,7 @@ max_concurrent_agents_by_state[state_name.to_s.strip.downcase]
 max_concurrent_agents_by_state[state_name.to_s.downcase]
 ```
 
-- [ ] **Step 5: 테스트 실행 — 전체 통과 확인**
+- [x] **Step 5: 테스트 실행 — 전체 통과 확인**
 
 Run: `bin/rails test test/models/symphony/service_config_test.rb -v`
 Expected: ALL PASS
@@ -94,12 +96,12 @@ git commit -m "refactor: ServiceConfig에서 strip 제거, comma-separated strin
 **Files:**
 - Modify: `app/models/symphony/orchestrator.rb:215-216, 223, 302, 307`
 
-- [ ] **Step 1: 기존 orchestrator 테스트 통과 확인**
+- [x] **Step 1: 기존 orchestrator 테스트 통과 확인**
 
 Run: `bin/rails test test/models/symphony/orchestrator_test.rb -v`
 Expected: ALL PASS
 
-- [ ] **Step 2: `.strip` 호출 일괄 제거**
+- [x] **Step 2: `.strip` 호출 일괄 제거**
 
 `app/models/symphony/orchestrator.rb`에서 모든 `.strip.downcase`를 `.downcase`로 변경:
 
@@ -109,7 +111,7 @@ Expected: ALL PASS
 - Line 302: `e[:issue]&.state.to_s.downcase == state.to_s.downcase`
 - Line 307: `issue.state.to_s.downcase == "todo"`
 
-- [ ] **Step 3: 테스트 실행**
+- [x] **Step 3: 테스트 실행**
 
 Run: `bin/rails test test/models/symphony/orchestrator_test.rb -v`
 Expected: ALL PASS
@@ -129,12 +131,12 @@ git commit -m "refactor: Orchestrator state 정규화에서 strip 제거 (SPEC �
 - Modify: `app/models/symphony/issue.rb:23, 25`
 - Modify: `app/models/symphony/trackers/memory.rb:28-29, 41-42`
 
-- [ ] **Step 1: 기존 테스트 통과 확인**
+- [x] **Step 1: 기존 테스트 통과 확인**
 
 Run: `bin/rails test test/models/symphony/issue_test.rb -v`
 Expected: ALL PASS
 
-- [ ] **Step 2: Issue#has_non_terminal_blockers?에서 `.strip` 제거**
+- [x] **Step 2: Issue#has_non_terminal_blockers?에서 `.strip` 제거**
 
 `app/models/symphony/issue.rb`:
 ```ruby
@@ -147,7 +149,7 @@ def has_non_terminal_blockers?(terminal_states)
 end
 ```
 
-- [ ] **Step 3: Trackers::Memory에서 `.strip` 제거**
+- [x] **Step 3: Trackers::Memory에서 `.strip` 제거**
 
 `app/models/symphony/trackers/memory.rb`:
 - Line 28: `normalized = active_states.map { |s| s.to_s.downcase }`
@@ -155,7 +157,7 @@ end
 - Line 41: `normalized = states.map { |s| s.to_s.downcase }`
 - Line 42: `i.state.to_s.downcase`
 
-- [ ] **Step 4: 전체 테스트 실행**
+- [x] **Step 4: 전체 테스트 실행**
 
 Run: `bin/rails test -v`
 Expected: ALL PASS
@@ -170,6 +172,8 @@ git commit -m "refactor: Issue, Trackers::Memory state 정규화에서 strip 제
 ---
 
 ## Chunk 2: SSH Worker Extension — Config + Scheduling
+
+> **Deferred:** 2026-03-23 결정으로 현재 로드맵에서 제외. 아래 작업은 구현 대상이 아니다.
 
 ### Task 4: ServiceConfig에 SSH worker 필드 추가
 
