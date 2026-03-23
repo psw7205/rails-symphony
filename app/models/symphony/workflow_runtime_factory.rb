@@ -9,7 +9,7 @@ module Symphony
         hooks: config.hooks,
         hooks_timeout_ms: config.hooks_timeout_ms
       )
-      tracker = build_tracker(config)
+      tracker = build_tracker(config, managed_workflow)
       agent = Agents::Codex.new(config: config)
       orchestrator = Orchestrator.new(
         tracker: tracker,
@@ -39,7 +39,7 @@ module Symphony
       )
     end
 
-    def self.build_tracker(config)
+    def self.build_tracker(config, managed_workflow)
       case config.tracker_kind
       when "linear"
         Trackers::Linear.new(
@@ -49,6 +49,8 @@ module Symphony
         )
       when "memory"
         Trackers::Memory.new
+      when "database"
+        Trackers::Database.new(managed_workflow: managed_workflow)
       else
         raise "Unsupported tracker kind: #{config.tracker_kind}"
       end

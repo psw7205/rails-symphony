@@ -18,6 +18,18 @@ class Symphony::WorkflowRuntimeFactoryTest < ActiveSupport::TestCase
     assert_equal 0, context.orchestrator.snapshot[:counts][:running]
   end
 
+  test "build creates a database tracker runtime context for database workflows" do
+    workflow = build_managed_workflow(
+      slug: "database-runtime-factory-workflow",
+      name: "Database Runtime Factory Workflow",
+      tracker_kind: "database"
+    )
+
+    context = Symphony::WorkflowRuntimeFactory.build(workflow.id)
+
+    assert_instance_of Symphony::Trackers::Database, context.tracker
+  end
+
   test "managed runtime dispatch enqueues an agent worker job with workflow id" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeFactory.build(workflow.id)
@@ -41,16 +53,16 @@ class Symphony::WorkflowRuntimeFactoryTest < ActiveSupport::TestCase
   end
 
   private
-    def build_managed_workflow
-      project = Symphony::ManagedProject.create!(name: "Runtime Factory Project", slug: "runtime-factory-project", status: "active")
+    def build_managed_workflow(slug: "runtime-factory-workflow", name: "Runtime Factory Workflow", tracker_kind: "memory")
+      project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
-        name: "Runtime Memory",
-        kind: "memory",
+        name: "#{name} Tracker",
+        kind: tracker_kind,
         status: "active",
         config: {}
       )
       agent_connection = Symphony::AgentConnection.create!(
-        name: "Runtime Codex",
+        name: "#{name} Codex",
         kind: "codex",
         status: "active",
         config: {
@@ -62,8 +74,8 @@ class Symphony::WorkflowRuntimeFactoryTest < ActiveSupport::TestCase
         managed_project: project,
         tracker_connection: tracker_connection,
         agent_connection: agent_connection,
-        name: "Runtime Factory Workflow",
-        slug: "runtime-factory-workflow",
+        name: name,
+        slug: slug,
         status: "active",
         prompt_template: "Prompt from runtime factory",
         runtime_config: {
