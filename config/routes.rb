@@ -11,6 +11,8 @@ Rails.application.routes.draw do
   get "projects/:id", to: "symphony/projects#show"
   get "agent_connections/new", to: "symphony/agent_connections#new"
   post "agent_connections", to: "symphony/agent_connections#create"
+  get "agent_connections/:id/edit", to: "symphony/agent_connections#edit"
+  patch "agent_connections/:id", to: "symphony/agent_connections#update"
   get "tracker_connections/new", to: "symphony/tracker_connections#new"
   post "tracker_connections", to: "symphony/tracker_connections#create"
   get "tracker_connections/:id/edit", to: "symphony/tracker_connections#edit"
