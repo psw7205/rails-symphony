@@ -74,6 +74,20 @@ class GithubWebhookControllerTest < ActionDispatch::IntegrationTest
     assert_equal "ignored_duplicate", event.status
   end
 
+  test "POST /webhooks/github records unsupported events without enqueueing a workflow tick" do
+    workflow = build_github_workflow
+    payload = github_payload
+
+    post "/webhooks/github", params: payload, headers: github_headers(payload, signature: github_signature(payload), event: "repository")
+
+    assert_response 202
+    assert_equal 0, enqueued_jobs.size
+    event = Symphony::WorkflowTriggerEvent.order(:id).last
+    assert_equal workflow.id, event.managed_workflow_id
+    assert_equal "ignored_unsupported", event.status
+    assert_equal "unsupported_event", event.error
+  end
+
   private
     def github_payload
       Rails.root.join("test/fixtures/files/webhooks/github/issues_opened.json").read
@@ -83,10 +97,10 @@ class GithubWebhookControllerTest < ActionDispatch::IntegrationTest
       "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", "github-secret", payload)}"
     end
 
-    def github_headers(payload, signature:)
+    def github_headers(payload, signature:, event: "issues")
       headers = {
         "CONTENT_TYPE" => "application/json",
-        "HTTP_X_GITHUB_EVENT" => "issues",
+        "HTTP_X_GITHUB_EVENT" => event,
         "HTTP_X_GITHUB_DELIVERY" => "72d3162e-cc78-11e3-81ab-4c9367dc0958",
         "RAW_POST_DATA" => payload
       }

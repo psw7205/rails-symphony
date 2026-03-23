@@ -26,6 +26,24 @@ class Symphony::WorkflowWebhookRouterTest < ActiveSupport::TestCase
     assert_equal [ workflow.id ], result[:workflows].map(&:id)
   end
 
+  test "marks unsupported GitHub events as ignored without dropping matched workflows" do
+    workflow = build_github_workflow(
+      slug: "router-github-unsupported",
+      name: "Router GitHub Unsupported",
+      repo: "octocat/Hello-World"
+    )
+
+    result = Symphony::WorkflowWebhookRouter.route(
+      provider: "github",
+      event_type: "repository",
+      payload: github_payload
+    )
+
+    assert_equal true, result[:ignored]
+    assert_equal "unsupported_event", result[:reason]
+    assert_equal [ workflow.id ], result[:workflows].map(&:id)
+  end
+
   test "routes Linear webhook payloads by project slug" do
     workflow = build_linear_workflow(
       slug: "router-linear-workflow",

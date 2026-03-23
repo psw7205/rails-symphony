@@ -21,7 +21,7 @@ module Symphony
 
           {
             workflows: workflows,
-            ignored: repo.blank? || event_type.to_s.casecmp("ping").zero?,
+            ignored: repo.blank? || !supported_github_event?(event_type),
             reason: repo.blank? ? "missing_repository" : "unsupported_event"
           }
         end
@@ -48,6 +48,10 @@ module Symphony
           return true if configured_project_id.present? && configured_project_id == project_id.to_s
 
           false
+        end
+
+        def supported_github_event?(event_type)
+          event_type.to_s.casecmp("issues").zero?
         end
 
         def active_workflows_for(kind)
