@@ -27,6 +27,49 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "WS-1"
   end
 
+  test "GET /workflows/:id renders operator controls and recent trigger events" do
+    workflow = build_managed_workflow
+    trigger_event = Symphony::WorkflowTriggerEvent.create!(
+      managed_workflow: workflow,
+      source: "webhook_github",
+      provider: "github",
+      delivery_id: "workflow-show-delivery",
+      status: "failed",
+      signature_state: "verified",
+      requested_at: 2.minutes.ago,
+      finished_at: 1.minute.ago,
+      error: "tick_failed"
+    )
+    Symphony::OrchestratorState.for_workflow!(workflow.id).update!(
+      last_trigger_source: "webhook_github",
+      last_triggered_at: trigger_event.requested_at,
+      last_tick_started_at: 90.seconds.ago,
+      last_tick_finished_at: trigger_event.finished_at,
+      last_tick_status: "failed",
+      last_tick_error: "tick_failed",
+      last_workflow_trigger_event: trigger_event
+    )
+
+    get "/workflows/#{workflow.id}"
+
+    assert_response :success
+    assert_includes response.body, "Refresh now"
+    assert_includes response.body, "Pause workflow"
+    assert_includes response.body, "Recent trigger events"
+    assert_includes response.body, "webhook_github"
+    assert_includes response.body, "tick_failed"
+  end
+
+  test "GET /workflows/:id renders paused workflow controls for inactive workflows" do
+    workflow = build_managed_workflow(status: "inactive", slug: "workflow-inactive", name: "Workflow Inactive")
+
+    get "/workflows/#{workflow.id}"
+
+    assert_response :success
+    assert_includes response.body, "Resume workflow"
+    assert_includes response.body, "Paused workflows do not receive recurring poll or webhook triggers."
+  end
+
   test "GET /workflows/:id renders tracker and agent connection record details" do
     project = Symphony::ManagedProject.create!(name: "Workflow Summary Project", slug: "workflow-summary-project", status: "active")
     tracker_connection = Symphony::TrackerConnection.create!(
@@ -338,6 +381,7 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
       Symphony::RetryEntry.delete_all
       Symphony::PersistedIssue.delete_all
       Symphony::OrchestratorState.delete_all
+      Symphony::WorkflowTriggerEvent.delete_all
       Symphony::ManagedIssue.delete_all
       Symphony::ManagedWorkflow.delete_all
       Symphony::AgentConnection.delete_all
@@ -345,7 +389,7 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
       Symphony::ManagedProject.delete_all
     end
 
-    def build_managed_workflow(tracker_kind: "memory", slug: "workflow-alpha", name: "Workflow Alpha")
+    def build_managed_workflow(tracker_kind: "memory", slug: "workflow-alpha", name: "Workflow Alpha", status: "active")
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
         name: "#{name} Tracker",
@@ -366,7 +410,7 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
         agent_connection: agent_connection,
         name: name,
         slug: slug,
-        status: "active",
+        status: status,
         prompt_template: "Workflow show prompt",
         runtime_config: { workspace: { root: "workflow-show-workspaces" } }
       )

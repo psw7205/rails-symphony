@@ -65,6 +65,44 @@ class Api::V1::IssuesControllerTest < ActionDispatch::IntegrationTest
     assert_equal File.join("api-managed-issue-workspaces", "MW-1"), body["workspace"]["path"]
   end
 
+  test "GET /api/v1/workflows/:workflow_id/issues/:identifier exposes trigger tracking metadata" do
+    workflow = build_managed_workflow
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(id: "managed-trigger-1", identifier: "MW-TR-1", title: "Managed trigger test", state: "In Progress", priority: 1, created_at: Time.now)
+    )
+    context.orchestrator.tick
+    trigger_event = Symphony::WorkflowTriggerEvent.create!(
+      managed_workflow: workflow,
+      source: "webhook_linear",
+      provider: "linear",
+      delivery_id: "linear-delivery-1",
+      status: "failed",
+      signature_state: "verified",
+      requested_at: 2.minutes.ago,
+      finished_at: 1.minute.ago,
+      error: "tick_failed"
+    )
+    Symphony::OrchestratorState.for_workflow!(workflow.id).update!(
+      last_trigger_source: "webhook_linear",
+      last_triggered_at: trigger_event.requested_at,
+      last_tick_started_at: 90.seconds.ago,
+      last_tick_finished_at: trigger_event.finished_at,
+      last_tick_status: "failed",
+      last_tick_error: "tick_failed",
+      last_workflow_trigger_event: trigger_event
+    )
+
+    get "/api/v1/workflows/#{workflow.id}/issues/MW-TR-1"
+
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal "webhook_linear", body["tracked"]["last_trigger_source"]
+    assert_equal "failed", body["tracked"]["last_tick_status"]
+    assert_equal "tick_failed", body["last_error"]
+    assert_equal "webhook_linear", body["recent_events"].first["source"]
+  end
+
   private
     def build_managed_workflow
       project = Symphony::ManagedProject.create!(name: "API Issue Project", slug: "api-issue-project", status: "active")

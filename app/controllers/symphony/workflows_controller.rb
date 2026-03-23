@@ -48,6 +48,8 @@ module Symphony
       @workflow = ManagedWorkflow.includes(:managed_project, :tracker_connection, :agent_connection).find(params[:id])
       @snapshot = WorkflowRuntimeManager.snapshot(@workflow.id)
       @recent_attempts = RunAttempt.where(managed_workflow_id: @workflow.id).order(created_at: :desc).limit(20)
+      @orchestrator_state = OrchestratorState.includes(:last_workflow_trigger_event).find_by(managed_workflow_id: @workflow.id)
+      @trigger_events = WorkflowTriggerEvent.where(managed_workflow_id: @workflow.id).order(requested_at: :desc).limit(10)
       @capabilities = WorkflowRuntimeManager.fetch(@workflow.id).tracker.capabilities
     end
 

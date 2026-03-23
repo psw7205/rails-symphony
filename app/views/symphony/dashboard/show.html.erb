@@ -78,7 +78,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title">Managed workflows</h2>
-          <p class="section-copy">Active managed workflows and their current runtime snapshot.</p>
+          <p class="section-copy">Managed workflows with runtime counts and trigger health summary.</p>
         </div>
       </div>
 
@@ -95,11 +95,14 @@
                 <th>Tracker</th>
                 <th>Running</th>
                 <th>Retrying</th>
+                <th>Last trigger</th>
+                <th>Tick status</th>
               </tr>
             </thead>
             <tbody>
               <% @console_snapshot[:workflow_rows].each do |row| %>
                 <% managed_workflow = row[:managed_workflow] %>
+                <% trigger_summary = row[:trigger_summary] %>
                 <tr>
                   <td><%= managed_workflow.name %></td>
                   <td><%= managed_workflow.managed_project.name %></td>
@@ -107,6 +110,54 @@
                   <td><%= managed_workflow.tracker_connection.kind %></td>
                   <td><%= row[:snapshot][:counts][:running] %></td>
                   <td><%= row[:snapshot][:counts][:retrying] %></td>
+                  <td>
+                    <div class="trigger-summary">
+                      <span><%= trigger_summary[:source] || "n/a" %></span>
+                      <span class="mono"><%= trigger_summary[:triggered_at] || "n/a" %></span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="trigger-summary">
+                      <span><%= trigger_summary[:tick_status] || "n/a" %></span>
+                      <span><%= trigger_summary[:event_status] || "n/a" %></span>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Last trigger</h2>
+          <p class="section-copy">Recent trigger acceptance and signature failures across managed workflows.</p>
+        </div>
+      </div>
+
+      <% if @console_snapshot[:recent_trigger_failures].empty? %>
+        <p class="empty-state">No recent trigger failures.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @console_snapshot[:recent_trigger_failures].each do |event| %>
+                <tr>
+                  <td><%= event.managed_workflow.name %></td>
+                  <td><%= event.source %></td>
+                  <td><%= event.status %></td>
+                  <td><%= event.error || "n/a" %></td>
                 </tr>
               <% end %>
             </tbody>

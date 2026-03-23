@@ -45,6 +45,54 @@
     <section class="section-card">
       <div class="section-header">
         <div>
+          <h2 class="section-title">Operator controls</h2>
+          <p class="section-copy">Pause or resume recurring triggers, or enqueue an immediate refresh.</p>
+        </div>
+      </div>
+
+      <div class="workflow-actions">
+        <% if @workflow.status == "active" %>
+          <%= button_to "Refresh now", "/workflows/#{@workflow.id}/refresh_now", method: :post %>
+          <%= button_to "Pause workflow", "/workflows/#{@workflow.id}/pause", method: :post, class: "secondary" %>
+        <% else %>
+          <%= button_to "Resume workflow", "/workflows/#{@workflow.id}/resume", method: :post %>
+          <%= button_to "Refresh now", "/workflows/#{@workflow.id}/refresh_now", method: :post, disabled: true, class: "secondary" %>
+          <p class="section-copy">Paused workflows do not receive recurring poll or webhook triggers.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Trigger health</h2>
+          <p class="section-copy">Latest trigger provenance and workflow tick result.</p>
+        </div>
+      </div>
+
+      <div class="health-grid">
+        <div class="health-cell">
+          <span class="metric-label">Last trigger source</span>
+          <span class="mono"><%= @orchestrator_state&.last_trigger_source || "n/a" %></span>
+        </div>
+        <div class="health-cell">
+          <span class="metric-label">Last triggered at</span>
+          <span class="mono"><%= @orchestrator_state&.last_triggered_at&.iso8601 || "n/a" %></span>
+        </div>
+        <div class="health-cell">
+          <span class="metric-label">Last tick status</span>
+          <span><%= @orchestrator_state&.last_tick_status || "n/a" %></span>
+        </div>
+        <div class="health-cell">
+          <span class="metric-label">Last tick error</span>
+          <span><%= @orchestrator_state&.last_tick_error || "n/a" %></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
           <h2 class="section-title">Connections</h2>
           <p class="section-copy">Tracker and agent records currently bound to this workflow.</p>
         </div>
@@ -89,6 +137,42 @@
       <p class="mono"><%= @capabilities.join(", ") %></p>
       <% if @capabilities.include?(:create_issue) %>
         <p><%= link_to "Manage issues", "/workflows/#{@workflow.id}/issues" %></p>
+      <% end %>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Recent trigger events</h2>
+          <p class="section-copy">Recent accepted, rejected, and failed trigger requests for this workflow.</p>
+        </div>
+      </div>
+
+      <% if @trigger_events.empty? %>
+        <p class="empty-state">No trigger events yet.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @trigger_events.each do |event| %>
+                <tr>
+                  <td><%= event.source %></td>
+                  <td><%= event.status %></td>
+                  <td class="mono"><%= event.requested_at&.iso8601 || "n/a" %></td>
+                  <td><%= event.error || "n/a" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
       <% end %>
     </section>
 

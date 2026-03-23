@@ -246,6 +246,37 @@ pre,
   padding: 1rem 1.05rem 1.1rem;
 }
 
+.workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.workflow-actions form {
+  margin: 0;
+}
+
+.health-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.health-cell {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.trigger-summary {
+  display: grid;
+  gap: 0.15rem;
+}
+
 .metric-label {
   margin: 0;
   color: var(--muted);

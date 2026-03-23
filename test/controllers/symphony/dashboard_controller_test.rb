@@ -49,6 +49,43 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Dashboard Workflow Two"
   end
 
+  test "GET / renders trigger health metadata for workflow rows" do
+    workflow = build_managed_workflow(slug: "dashboard-trigger-health", name: "Dashboard Trigger Health")
+    trigger_event = Symphony::WorkflowTriggerEvent.create!(
+      managed_workflow: workflow,
+      source: "manual_refresh",
+      status: "succeeded",
+      signature_state: "not_applicable",
+      requested_at: 2.minutes.ago,
+      finished_at: 1.minute.ago
+    )
+    Symphony::OrchestratorState.for_workflow!(workflow.id).update!(
+      last_trigger_source: "manual_refresh",
+      last_triggered_at: trigger_event.requested_at,
+      last_tick_started_at: 90.seconds.ago,
+      last_tick_finished_at: trigger_event.finished_at,
+      last_tick_status: "succeeded",
+      last_workflow_trigger_event: trigger_event
+    )
+
+    get root_path
+
+    assert_response :success
+    assert_includes response.body, "Last trigger"
+    assert_includes response.body, "manual_refresh"
+    assert_includes response.body, "succeeded"
+  end
+
+  test "GET / renders inactive workflows in the dashboard table" do
+    build_managed_workflow(slug: "dashboard-inactive-workflow", name: "Dashboard Inactive Workflow", status: "inactive")
+
+    get root_path
+
+    assert_response :success
+    assert_includes response.body, "Dashboard Inactive Workflow"
+    assert_includes response.body, "inactive"
+  end
+
   test "GET / renders running metric from managed workflow totals" do
     workflow = build_managed_workflow(slug: "dashboard-running-workflow", name: "Dashboard Running Workflow")
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
@@ -129,6 +166,7 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
       Symphony::RetryEntry.delete_all
       Symphony::PersistedIssue.delete_all
       Symphony::OrchestratorState.delete_all
+      Symphony::WorkflowTriggerEvent.delete_all
       Symphony::ManagedIssue.delete_all
       Symphony::ManagedWorkflow.delete_all
       Symphony::AgentConnection.delete_all
@@ -136,7 +174,7 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
       Symphony::ManagedProject.delete_all
     end
 
-    def build_managed_workflow(slug:, name:)
+    def build_managed_workflow(slug:, name:, status: "active")
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
         name: "#{name} Memory",
@@ -157,7 +195,7 @@ class Symphony::DashboardControllerTest < ActionDispatch::IntegrationTest
         agent_connection: agent_connection,
         name: name,
         slug: slug,
-        status: "active",
+        status: status,
         prompt_template: "Dashboard prompt",
         runtime_config: { workspace: { root: "dashboard-workspaces" } }
       )

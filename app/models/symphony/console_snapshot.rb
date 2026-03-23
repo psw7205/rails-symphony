@@ -1,7 +1,31 @@
 module Symphony
   class ConsoleSnapshot
     def self.build
-      workflow_rows = WorkflowRuntimeManager.global_snapshot
+      workflows = ManagedWorkflow.includes(:managed_project, :tracker_connection).order(:id).to_a
+      active_rows = WorkflowRuntimeManager.global_snapshot.index_by { |row| row[:managed_workflow].id }
+      states = OrchestratorState.includes(:last_workflow_trigger_event)
+        .where(managed_workflow_id: workflows.map(&:id))
+        .index_by(&:managed_workflow_id)
+
+      workflow_rows = workflows.map do |workflow|
+        runtime_row = active_rows[workflow.id]
+        snapshot = runtime_row&.dig(:snapshot) || empty_snapshot
+        state = states[workflow.id]
+        last_event = state&.last_workflow_trigger_event
+
+        {
+          managed_workflow: workflow,
+          snapshot: snapshot,
+          trigger_summary: {
+            source: state&.last_trigger_source,
+            triggered_at: state&.last_triggered_at&.iso8601,
+            tick_status: state&.last_tick_status,
+            tick_error: state&.last_tick_error,
+            event_status: last_event&.status
+          }
+        }
+      end
+
       running_entries = workflow_rows.flat_map do |row|
         row[:snapshot][:running].map do |entry|
           entry.merge(managed_workflow_id: row[:managed_workflow].id)
@@ -15,7 +39,7 @@ module Symphony
 
       {
         project_count: ManagedProject.count,
-        active_workflow_count: workflow_rows.size,
+        active_workflow_count: workflows.count { |workflow| workflow.status == "active" },
         totals: {
           running: workflow_rows.sum { |row| row[:snapshot][:counts][:running] },
           retrying: workflow_rows.sum { |row| row[:snapshot][:counts][:retrying] }
@@ -35,7 +59,26 @@ module Symphony
         running: running_entries,
         retrying: retry_entries,
         recent_failures: retry_entries.select { |entry| entry[:error].present? },
+        recent_trigger_failures: WorkflowTriggerEvent.recent_failures
+          .where(managed_workflow_id: workflows.map(&:id))
+          .includes(:managed_workflow)
+          .limit(20),
         workflow_rows: workflow_rows
+      }
+    end
+
+    def self.empty_snapshot
+      {
+        counts: { running: 0, retrying: 0 },
+        running: [],
+        retrying: [],
+        codex_totals: {
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          seconds_running: 0.0
+        },
+        rate_limits: nil
       }
     end
   end
