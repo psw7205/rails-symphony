@@ -42,10 +42,10 @@ module Symphony
         dispatch_eligible(candidates)
         success_result
       end
-    end
     rescue => error
       Rails.logger.error("[Orchestrator] Tick failed: #{error.class}: #{error.message}")
       failure_result(error.message)
+    end
 
     # Called when a worker exits normally
     def on_worker_exit_normal(issue_id, issue_identifier)
