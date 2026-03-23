@@ -44,6 +44,34 @@ class Symphony::TrackerConnectionsControllerTest < ActionDispatch::IntegrationTe
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "GET /tracker_connections/:id/edit renders the tracker connection form" do
+    connection = Symphony::TrackerConnection.create!(name: "Editable Tracker", kind: "linear", status: "active", config: { project_slug: "OPS" })
+
+    get "/tracker_connections/#{connection.id}/edit"
+    assert_response :success
+    assert_includes response.body, "Edit tracker connection"
+    assert_includes response.body, "Editable Tracker"
+  end
+
+  test "PATCH /tracker_connections/:id updates a tracker connection" do
+    connection = Symphony::TrackerConnection.create!(name: "Editable Tracker", kind: "linear", status: "active", config: { project_slug: "OPS" })
+
+    patch "/tracker_connections/#{connection.id}", params: {
+      tracker_connection: {
+        name: "Updated Tracker",
+        kind: "github",
+        status: "inactive",
+        config_json: "{\"repository\":\"octo/repo\"}"
+      }
+    }
+
+    assert_redirected_to "/projects"
+    connection.reload
+    assert_equal "Updated Tracker", connection.name
+    assert_equal "github", connection.kind
+    assert_equal "octo/repo", connection.config["repository"]
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
