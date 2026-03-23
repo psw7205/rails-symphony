@@ -83,12 +83,12 @@
 
 ### Steps
 
-- [ ] 모델 테스트 작성: association, slug uniqueness, `status` inclusion, required foreign keys 검증
-- [ ] migration 작성: 각 테이블과 필요한 unique index 추가
-- [ ] `ManagedProject has_many :managed_workflows`
-- [ ] `ManagedWorkflow belongs_to :managed_project`, `belongs_to :tracker_connection`, `belongs_to :agent_connection`, `has_many :managed_issues`
-- [ ] `ManagedIssue`는 `database` tracker 전용 원장임을 모델 주석과 validation으로 명시
-- [ ] `config`/`runtime_config` JSON column accessor는 처음엔 단순 hash로 두고, 조기 추상화는 피한다
+- [x] 모델 테스트 작성: association, slug uniqueness, `status` inclusion, required foreign keys 검증
+- [x] migration 작성: 각 테이블과 필요한 unique index 추가
+- [x] `ManagedProject has_many :managed_workflows`
+- [x] `ManagedWorkflow belongs_to :managed_project`, `belongs_to :tracker_connection`, `belongs_to :agent_connection`, `has_many :managed_issues`
+- [x] `ManagedIssue`는 `database` tracker 전용 원장임을 모델 주석과 validation으로 명시
+- [x] `config`/`runtime_config` JSON column accessor는 처음엔 단순 hash로 두고, 조기 추상화는 피한다
 
 Run: `bin/rails test test/models/symphony/managed_project_test.rb test/models/symphony/managed_workflow_test.rb test/models/symphony/managed_issue_test.rb`
 Expected: PASS
@@ -112,12 +112,12 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: 동일 `source_issue_id`가 서로 다른 workflow에 저장될 수 있고, 같은 workflow 안에서는 중복되면 안 되는지 검증
-- [ ] migration 작성: 각 runtime 테이블에 `managed_workflow_id` 추가 및 index/foreign key 추가
-- [ ] `PersistedIssue`에 `belongs_to :managed_workflow` 추가, unique index를 `[managed_workflow_id, source_issue_id]`로 둔다
-- [ ] `RunAttempt`, `RetryEntry`, `OrchestratorState`도 `managed_workflow_id` association 추가
-- [ ] `OrchestratorState.current`는 singleton이 아니라 `for_workflow!(managed_workflow_id)` 스타일 API로 교체
-- [ ] 기존 global query helper가 있으면 workflow scope를 강제하도록 수정
+- [x] 실패 테스트 작성: 동일 `source_issue_id`가 서로 다른 workflow에 저장될 수 있고, 같은 workflow 안에서는 중복되면 안 되는지 검증
+- [x] migration 작성: 각 runtime 테이블에 `managed_workflow_id` 추가 및 index/foreign key 추가
+- [x] `PersistedIssue`에 `belongs_to :managed_workflow` 추가, unique index를 `[managed_workflow_id, source_issue_id]`로 둔다
+- [x] `RunAttempt`, `RetryEntry`, `OrchestratorState`도 `managed_workflow_id` association 추가
+- [x] `OrchestratorState.current`는 singleton이 아니라 `for_workflow!(managed_workflow_id)` 스타일 API로 교체
+- [x] 기존 global query helper가 있으면 workflow scope를 강제하도록 수정
 
 Run: `bin/rails test test/models/symphony/persisted_issue_test.rb`
 Expected: PASS
@@ -144,11 +144,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: `ManagedWorkflow` + connection record 조합으로 `tracker.kind`, `workspace.root`, `agent.max_concurrent_agents`, `codex.command` 등을 읽을 수 있는지 검증
-- [ ] `WorkflowConfigBuilder` 구현: DB 필드를 기존 `WORKFLOW.md` front matter shape로 정규화
-- [ ] `ManagedWorkflowStore` 구현: `service_config`, `prompt_template`, `reload_if_changed!`, `last_error` 제공
-- [ ] `ServiceConfig` validation을 `linear`, `database`, 향후 `github` kind까지 수용하도록 정리
-- [ ] file-backed `WorkflowStore`는 그대로 두고, `ManagedWorkflowStore`와 같은 public interface를 맞춘다
+- [x] 실패 테스트 작성: `ManagedWorkflow` + connection record 조합으로 `tracker.kind`, `workspace.root`, `agent.max_concurrent_agents`, `codex.command` 등을 읽을 수 있는지 검증
+- [x] `WorkflowConfigBuilder` 구현: DB 필드를 기존 `WORKFLOW.md` front matter shape로 정규화
+- [x] `ManagedWorkflowStore` 구현: `service_config`, `prompt_template`, `reload_if_changed!`, `last_error` 제공
+- [x] `ServiceConfig` validation을 `linear`, `database`, 향후 `github` kind까지 수용하도록 정리
+- [x] file-backed `WorkflowStore`는 그대로 두고, `ManagedWorkflowStore`와 같은 public interface를 맞춘다
 
 Run: `bin/rails test test/models/symphony/workflow_config_builder_test.rb test/models/symphony/managed_workflow_store_test.rb test/models/symphony/service_config_test.rb`
 Expected: PASS
@@ -163,10 +163,10 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: 기존 `Symphony.boot!(workflow_path:)`가 계속 작동하는지 검증
-- [ ] `Symphony.boot!`는 legacy boot path로 남기고, DB path는 별도 entrypoint (`boot_managed!` 또는 runtime factory 경유)로 분리
-- [ ] `Symphony::Workflow` parser는 이름 유지, 관리용 모델과 섞이지 않게 호출 지점을 명확히 정리
-- [ ] global accessor 추가가 필요하면 legacy mode 전용인지 주석으로 분명히 남긴다
+- [x] 실패 테스트 작성: 기존 `Symphony.boot!(workflow_path:)`가 계속 작동하는지 검증
+- [x] `Symphony.boot!`는 legacy boot path로 남기고, DB path는 별도 entrypoint (`boot_managed!` 또는 runtime factory 경유)로 분리
+- [x] `Symphony::Workflow` parser는 이름 유지, 관리용 모델과 섞이지 않게 호출 지점을 명확히 정리
+- [x] global accessor 추가가 필요하면 legacy mode 전용인지 주석으로 분명히 남긴다
 
 Run: `bin/rails test test/models/symphony_test.rb`
 Expected: PASS
@@ -191,12 +191,12 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: `managed_workflow_id` 하나로 runtime context를 만들고 `snapshot` 호출이 가능한지 검증
-- [ ] `RuntimeContext` 구현: `managed_workflow`, `tracker`, `workspace`, `agent`, `workflow_store`, `orchestrator`를 묶는다
-- [ ] `WorkflowRuntimeFactory` 구현: active workflow record를 읽어 runtime 구성
-- [ ] `WorkflowRuntimeManager` 구현: `fetch(workflow_id)`, `refresh(workflow_id)`, `snapshot(workflow_id)`, `global_snapshot`
-- [ ] `Orchestrator` 초기화 시 `managed_workflow_id`를 받게 하고 persistence helper가 항상 scope를 사용하도록 변경
-- [ ] `restore_from_db!`는 해당 workflow의 retry/totals만 복원하게 제한
+- [x] 실패 테스트 작성: `managed_workflow_id` 하나로 runtime context를 만들고 `snapshot` 호출이 가능한지 검증
+- [x] `RuntimeContext` 구현: `managed_workflow`, `tracker`, `workspace`, `agent`, `workflow_store`, `orchestrator`를 묶는다
+- [x] `WorkflowRuntimeFactory` 구현: active workflow record를 읽어 runtime 구성
+- [x] `WorkflowRuntimeManager` 구현: `fetch(workflow_id)`, `refresh(workflow_id)`, `snapshot(workflow_id)`, `global_snapshot`
+- [x] `Orchestrator` 초기화 시 `managed_workflow_id`를 받게 하고 persistence helper가 항상 scope를 사용하도록 변경
+- [x] `restore_from_db!`는 해당 workflow의 retry/totals만 복원하게 제한
 
 Run: `bin/rails test test/models/symphony/workflow_runtime_factory_test.rb test/models/symphony/workflow_runtime_manager_test.rb test/models/symphony/orchestrator_snapshot_test.rb`
 Expected: PASS
@@ -222,11 +222,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: API가 `workflow_id` 없는 global singleton 대신 workflow-scoped runtime을 찾는지 검증
-- [ ] `AgentWorkerJob` 인자에 `managed_workflow_id` 추가
-- [ ] job 시작 시 runtime manager/factory로 context를 복원하고 `AgentRunner`를 구성
-- [ ] `PollJob`는 legacy wrapper로 남기고, managed mode는 `WorkflowPollJob.perform_later(workflow_id:)`를 사용
-- [ ] API controller는 `managed_workflow_id` 기준 snapshot을 조회하고 workspace path도 workflow-scoped로 계산
+- [x] 실패 테스트 작성: API가 `workflow_id` 없는 global singleton 대신 workflow-scoped runtime을 찾는지 검증
+- [x] `AgentWorkerJob` 인자에 `managed_workflow_id` 추가
+- [x] job 시작 시 runtime manager/factory로 context를 복원하고 `AgentRunner`를 구성
+- [x] `PollJob`는 legacy wrapper로 남기고, managed mode는 `WorkflowPollJob.perform_later(workflow_id:)`를 사용
+- [x] API controller는 `managed_workflow_id` 기준 snapshot을 조회하고 workspace path도 workflow-scoped로 계산
 
 Run: `bin/rails test test/controllers/api/v1/states_controller_test.rb test/controllers/api/v1/refreshes_controller_test.rb test/controllers/api/v1/issues_controller_test.rb test/jobs/symphony/workflow_poll_job_test.rb`
 Expected: PASS
@@ -252,11 +252,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 실패 테스트 작성: workflow 2개 이상일 때 대시보드가 workflow row를 렌더하는지 검증
-- [ ] `ConsoleSnapshot` 구현: `ManagedWorkflow.includes(...)` + runtime manager snapshot 집계
-- [ ] `DashboardController#show`는 더 이상 `Symphony.orchestrator` singleton을 직접 읽지 않는다
-- [ ] 뷰 개편: 전역 metric + workflow table + tracker sync/runtime status 표시
-- [ ] empty state는 "active workflow 없음" 기준으로 바꾼다
+- [x] 실패 테스트 작성: workflow 2개 이상일 때 대시보드가 workflow row를 렌더하는지 검증
+- [x] `ConsoleSnapshot` 구현: `ManagedWorkflow.includes(...)` + runtime manager snapshot 집계
+- [x] `DashboardController#show`는 더 이상 `Symphony.orchestrator` singleton을 직접 읽지 않는다
+- [x] 뷰 개편: 전역 metric + workflow table + tracker sync/runtime status 표시
+- [x] empty state는 "active workflow 없음" 기준으로 바꾼다
 
 Run: `bin/rails test test/models/symphony/console_snapshot_test.rb test/controllers/symphony/dashboard_controller_test.rb`
 Expected: PASS
@@ -283,11 +283,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 컨트롤러 테스트 작성: projects index/show, workflows show
-- [ ] project show에서 소속 workflow 목록과 last health 표시
-- [ ] workflow show에서 runtime snapshot, retry rows, recent attempts, token usage를 렌더
-- [ ] run history는 `RunAttempt.where(managed_workflow_id: ...)` 기반으로 20건만 노출
-- [ ] tracker capability는 adapter가 제공하는 list를 뷰에 전달
+- [x] 컨트롤러 테스트 작성: projects index/show, workflows show
+- [x] project show에서 소속 workflow 목록과 last health 표시
+- [x] workflow show에서 runtime snapshot, retry rows, recent attempts, token usage를 렌더
+- [x] run history는 `RunAttempt.where(managed_workflow_id: ...)` 기반으로 20건만 노출
+- [x] tracker capability는 adapter가 제공하는 list를 뷰에 전달
 
 Run: `bin/rails test test/controllers/symphony/projects_controller_test.rb test/controllers/symphony/workflows_controller_test.rb`
 Expected: PASS
@@ -311,11 +311,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] 프로젝트/워크플로/connection CRUD 테스트 작성
-- [ ] workflow form에 `tracker_connection`, `agent_connection`, `prompt_template`, `runtime_config` 입력 추가
-- [ ] 활성/비활성 상태 변경이 가능하도록 `status` 필드 노출
-- [ ] form validation error를 화면에 표시
-- [ ] workflow 저장 후 runtime manager refresh를 호출하거나, 최소한 다음 poll에서 반영되게 한다
+- [x] 프로젝트/워크플로/connection CRUD 테스트 작성
+- [x] workflow form에 `tracker_connection`, `agent_connection`, `prompt_template`, `runtime_config` 입력 추가
+- [x] 활성/비활성 상태 변경이 가능하도록 `status` 필드 노출
+- [x] form validation error를 화면에 표시
+- [x] workflow 저장 후 runtime manager refresh를 호출하거나, 최소한 다음 poll에서 반영되게 한다
 
 Run: `bin/rails test test/controllers/symphony/tracker_connections_controller_test.rb test/controllers/symphony/agent_connections_controller_test.rb test/controllers/symphony/projects_controller_test.rb test/controllers/symphony/workflows_controller_test.rb`
 Expected: PASS
@@ -341,12 +341,12 @@ Expected: PASS
 
 ### Steps
 
-- [ ] `Trackers::Base#capabilities` 테스트 작성
-- [ ] `Trackers::Linear`은 read-only capability만 반환
-- [ ] `Trackers::Database`는 `ManagedIssue`를 source of truth로 사용하고 full CRUD capability 반환
-- [ ] workflow detail 화면에서 capability badge와 action button 노출을 capability 기준으로 분기
-- [ ] `ManagedIssuesController`는 `database` tracker workflow에서만 쓰기 액션 허용, 아니면 404 또는 422 처리
-- [ ] `docs/plans/2026-03-13-tracker-database.md`의 구현 범위를 `ManagedIssue` 기준으로 맞춰 필요한 차이를 반영한다
+- [x] `Trackers::Base#capabilities` 테스트 작성
+- [x] `Trackers::Linear`은 read-only capability만 반환
+- [x] `Trackers::Database`는 `ManagedIssue`를 source of truth로 사용하고 full CRUD capability 반환
+- [x] workflow detail 화면에서 capability badge와 action button 노출을 capability 기준으로 분기
+- [x] `ManagedIssuesController`는 `database` tracker workflow에서만 쓰기 액션 허용, 아니면 404 또는 422 처리
+- [x] `docs/plans/2026-03-13-tracker-database.md`의 구현 범위를 `ManagedIssue` 기준으로 맞춰 필요한 차이를 반영한다
 
 Run: `bin/rails test test/models/symphony/trackers/database_test.rb test/controllers/symphony/managed_issues_controller_test.rb`
 Expected: PASS
@@ -360,9 +360,9 @@ Expected: PASS
 
 ### Steps
 
-- [ ] capability plumbing과 connection model이 먼저 안정화되기 전에는 `github` 구현에 착수하지 않는다
-- [ ] `tracker.kind: github` validation과 factory wiring은 capability base landed 이후에만 붙인다
-- [ ] GitHub adapter 상세 구현은 기존 dedicated plan을 그대로 따른다
+- [x] capability plumbing과 connection model이 먼저 안정화되기 전에는 `github` 구현에 착수하지 않는다
+- [x] `tracker.kind: github` validation과 factory wiring은 capability base landed 이후에만 붙인다
+- [x] GitHub adapter 상세 구현은 기존 dedicated plan을 그대로 따른다
 
 Run: `bin/rails test test/models/symphony/service_config_test.rb`
 Expected: PASS
@@ -379,11 +379,11 @@ Expected: PASS
 
 ### Steps
 
-- [ ] import task 테스트 작성: 기존 `WORKFLOW.md`를 읽어 `ManagedProject`, `ManagedWorkflow`, connection record를 생성하는지 검증
-- [ ] import task 구현: 파일 기반 config를 읽어 DB record로 1회 import
-- [ ] import task는 credential 값을 평문으로 복사하지 않고 env var reference 문자열만 저장
-- [ ] README에 "legacy file mode"와 "managed DB mode" 부팅 방법을 분리해서 문서화
-- [ ] design doc에 최종적으로 implementation doc 링크와 결정사항을 반영
+- [x] import task 테스트 작성: 기존 `WORKFLOW.md`를 읽어 `ManagedProject`, `ManagedWorkflow`, connection record를 생성하는지 검증
+- [x] import task 구현: 파일 기반 config를 읽어 DB record로 1회 import
+- [x] import task는 credential 값을 평문으로 복사하지 않고 env var reference 문자열만 저장
+- [x] README에 "legacy file mode"와 "managed DB mode" 부팅 방법을 분리해서 문서화
+- [x] design doc에 최종적으로 implementation doc 링크와 결정사항을 반영
 
 Run: `bin/rails test test/tasks/symphony/import_workflow_task_test.rb`
 Expected: PASS
@@ -396,10 +396,10 @@ Expected: PASS
 
 ### Steps
 
-- [ ] workflow-scoped integration test 추가: project/workflow 생성 -> poll -> dispatch -> run attempt 기록 -> dashboard 표시
-- [ ] full suite 실행: `bin/rails test`
-- [ ] 수동 검증: workflow 2개 생성 후 root dashboard에서 각각 snapshot이 분리되어 보이는지 확인
-- [ ] cutover note 작성: 남아 있는 후속 항목(`github`, webhook, auth`) 명시
+- [x] workflow-scoped integration test 추가: project/workflow 생성 -> poll -> dispatch -> run attempt 기록 -> dashboard 표시
+- [x] full suite 실행: `bin/rails test`
+- [x] 수동 검증: workflow 2개 생성 후 root dashboard에서 각각 snapshot이 분리되어 보이는지 확인
+- [x] cutover note 작성: 남아 있는 후속 항목(`github`, webhook, auth`) 명시
 
 Run: `bin/rails test`
 Expected: PASS
