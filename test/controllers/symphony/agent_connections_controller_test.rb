@@ -119,6 +119,28 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "PATCH /agent_connections/:id renders an error for malformed config JSON" do
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Editable Codex Connection",
+      kind: "codex",
+      status: "active",
+      config: { "codex" => { "command" => "bin/codex app-server" } }
+    )
+
+    patch "/agent_connections/#{agent_connection.id}", params: {
+      agent_connection: {
+        name: "Editable Codex Connection",
+        kind: "codex",
+        status: "active",
+        config_json: "{\"codex\":"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Config json is invalid JSON"
+    assert_equal({ "codex" => { "command" => "bin/codex app-server" } }, agent_connection.reload.config)
+  end
+
   test "DELETE /agent_connections/:id destroys an agent connection" do
     agent_connection = Symphony::AgentConnection.create!(
       name: "Deletable Codex Connection",
