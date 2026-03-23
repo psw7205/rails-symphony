@@ -83,6 +83,26 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "bin/codex worker", agent_connection.config["codex"]["command"]
   end
 
+  test "PATCH /agent_connections/:id renders validation errors" do
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Editable Codex Connection",
+      kind: "codex",
+      status: "active",
+      config: { "codex" => { "command" => "bin/codex app-server" } }
+    )
+
+    patch "/agent_connections/#{agent_connection.id}", params: {
+      agent_connection: {
+        name: "",
+        kind: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
