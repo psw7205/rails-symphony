@@ -26,6 +26,25 @@ module Symphony
       end
     end
 
+    def edit
+      @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
+      return head :not_found unless @workflow.tracker_connection.kind == "database"
+
+      @managed_issue = ManagedIssue.find(params[:id])
+    end
+
+    def update
+      @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
+      return head :not_found unless @workflow.tracker_connection.kind == "database"
+
+      @managed_issue = ManagedIssue.find(params[:id])
+      if @managed_issue.update(managed_issue_params)
+        redirect_to "/workflows/#{@workflow.id}/issues"
+      else
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
     private
       def managed_issue_params
         params.require(:managed_issue).permit(:identifier, :title, :description, :priority, :state)

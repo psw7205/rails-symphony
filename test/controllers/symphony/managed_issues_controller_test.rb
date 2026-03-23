@@ -72,6 +72,46 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Identifier can&#39;t be blank"
   end
 
+  test "GET /workflows/:workflow_id/issues/:id/edit renders the managed issue form" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-edit-workflow", name: "Managed Issues Edit Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: workflow,
+      identifier: "MI-EDIT-1",
+      title: "Editable managed issue",
+      state: "Todo"
+    )
+
+    get "/workflows/#{workflow.id}/issues/#{issue.id}/edit"
+    assert_response :success
+    assert_includes response.body, "Edit managed issue"
+    assert_includes response.body, "Editable managed issue"
+  end
+
+  test "PATCH /workflows/:workflow_id/issues/:id updates a managed issue" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-update-workflow", name: "Managed Issues Update Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: workflow,
+      identifier: "MI-UPDATE-1",
+      title: "Editable managed issue",
+      state: "Todo"
+    )
+
+    patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
+      managed_issue: {
+        identifier: "MI-UPDATE-1",
+        title: "Updated managed issue",
+        description: "Updated from controller test",
+        priority: "2",
+        state: "In Progress"
+      }
+    }
+
+    assert_redirected_to "/workflows/#{workflow.id}/issues"
+    issue.reload
+    assert_equal "Updated managed issue", issue.title
+    assert_equal "In Progress", issue.state
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
