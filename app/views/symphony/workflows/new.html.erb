@@ -57,7 +57,7 @@
 
         <div>
           <%= form.label :runtime_config_json, "Runtime config (JSON)" %>
-          <%= form.text_area :runtime_config_json %>
+          <%= form.text_area :runtime_config_json, value: @workflow.runtime_config_json.presence || (@workflow.runtime_config.present? ? @workflow.runtime_config.to_json : "") %>
         </div>
 
         <%= form.submit "Create workflow" %>

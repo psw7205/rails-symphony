@@ -7,9 +7,9 @@ module Symphony
 
     def create
       @workflow = ManagedWorkflow.new(workflow_params)
-      @workflow.runtime_config = parsed_runtime_config
+      @workflow.runtime_config_json = raw_runtime_config_json
 
-      if @workflow.save
+      if assign_parsed_runtime_config(@workflow) && @workflow.save
         WorkflowRuntimeManager.refresh(@workflow.id)
         redirect_to "/workflows/#{@workflow.id}"
       else
@@ -26,9 +26,9 @@ module Symphony
     def update
       @workflow = ManagedWorkflow.find(params[:id])
       @workflow.assign_attributes(workflow_params)
-      @workflow.runtime_config = parsed_runtime_config
+      @workflow.runtime_config_json = raw_runtime_config_json
 
-      if @workflow.save
+      if assign_parsed_runtime_config(@workflow) && @workflow.save
         WorkflowRuntimeManager.refresh(@workflow.id)
         redirect_to "/workflows/#{@workflow.id}"
       else
@@ -64,13 +64,18 @@ module Symphony
         )
       end
 
-      def parsed_runtime_config
-        raw = params.dig(:managed_workflow, :runtime_config_json)
-        return {} if raw.blank?
+      def raw_runtime_config_json
+        params.dig(:managed_workflow, :runtime_config_json).to_s
+      end
 
-        JSON.parse(raw)
+      def assign_parsed_runtime_config(workflow)
+        return workflow.runtime_config = {} if raw_runtime_config_json.blank?
+
+        workflow.runtime_config = JSON.parse(raw_runtime_config_json)
+        true
       rescue JSON::ParserError
-        {}
+        workflow.errors.add(:runtime_config_json, "is invalid JSON")
+        false
       end
 
       def load_form_dependencies
