@@ -117,6 +117,21 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "inactive", project.status
   end
 
+  test "PATCH /projects/:id renders validation errors" do
+    project = Symphony::ManagedProject.create!(name: "Editable Project", slug: "editable-project", status: "active")
+
+    patch "/projects/#{project.id}", params: {
+      managed_project: {
+        name: "",
+        slug: "",
+        status: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
