@@ -89,6 +89,9 @@ bin/jobs
 - root dashboard (`/`)가 멀티 프로젝트 admin console entrypoint다
 - runtime은 `WorkflowRuntimeManager`가 workflow 단위로 조립/캐시한다
 - background poll/dispatch는 Rails app + Solid Queue worker(`bin/jobs`) 조합을 전제로 한다
+- recurring poll, workflow refresh, database tracker write, verified webhook은 `WorkflowTriggerScheduler`를 통해 같은 workflow-trigger path를 사용한다
+- workflow detail에서 `refresh now`, `pause`, `resume` control과 recent trigger ledger를 볼 수 있다
+- webhook endpoint는 `/webhooks/github`, `/webhooks/linear` 이며 secret은 tracker connection config의 `tracker.webhook_secret`에 plain string 또는 `"$ENV_VAR"` 형태로 둔다
 
 ### Legacy `WORKFLOW.md` Import
 
@@ -141,6 +144,9 @@ bin/rails test
 - HTTP JSON API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/:issue_identifier`)
 - Turbo 대시보드 루트 페이지 (`/`)
 - 멀티 프로젝트 admin console (`ManagedProject`, `ManagedWorkflow`, DB-backed connections/issues)
+- workflow trigger ledger + async workflow refresh contract
+- verified GitHub/Linear webhook ingestion
+- workflow pause/resume/refresh controls + trigger/tick triage UI
 
 ## 참고
 

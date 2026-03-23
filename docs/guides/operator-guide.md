@@ -68,7 +68,11 @@ bin/jobs
 
 - root dashboard (`/`)가 admin console entrypoint다
 - workflow runtime은 `WorkflowRuntimeManager`가 workflow 단위로 조립한다
-- recurring `PollJob`가 active managed workflow마다 `WorkflowPollJob`를 fanout enqueue한다
+- recurring `PollJob`, manual refresh, database tracker write, verified webhook이 모두 `WorkflowTriggerScheduler`를 거쳐 `WorkflowPollJob`로 이어진다
+- workflow detail에서 `refresh now`, `pause`, `resume`를 실행할 수 있다
+- `pause`는 future recurring poll/webhook eligibility만 막고, 이미 실행 중인 세션을 강제 종료하지 않는다
+- `resume`은 workflow를 active로 돌리고 즉시 refresh를 enqueue한다
+- `refresh now`는 active workflow에서만 enqueue된다
 
 #### Legacy `WORKFLOW.md` import
 
@@ -96,6 +100,7 @@ YAML front matter + Liquid 템플릿 본문으로 구성된 단일 파일 설정
 | `endpoint` | string | kind별 기본값 | Tracker API 엔드포인트 |
 | `project_slug` | string | *필수(linear)* | Linear 프로젝트 슬러그 |
 | `repo` | string | *필수(github)* | GitHub 저장소 (`owner/repo`) |
+| `webhook_secret` | string | — | GitHub/Linear webhook secret. plain string 또는 `$ENV_VAR` 가능 |
 | `active_states` | array | `[Todo, In Progress]` | 디스패치 대상 이슈 상태 |
 | `terminal_states` | array | `[Closed, Cancelled, Canceled, Duplicate, Done]` | 종료 상태 (워크스페이스 자동 정리) |
 
@@ -204,6 +209,7 @@ tracker:
   kind: linear
   api_key: $LINEAR_API_KEY
   project_slug: MY-PROJECT
+  webhook_secret: $LINEAR_WEBHOOK_SECRET
   active_states: [Todo, In Progress]
   terminal_states: [Done, Cancelled]
 ```
@@ -211,6 +217,9 @@ tracker:
 - GraphQL 커서 기반 페이지네이션 (50건/페이지)
 - `inverseRelations`으로 blocker 관계 추출
 - 레이블은 소문자로 정규화
+- verified webhook endpoint는 `/webhooks/linear` 이다
+- secret은 raw body HMAC-SHA256 + `webhookTimestamp` freshness로 검증한다
+- invalid signature 또는 stale timestamp는 `WorkflowTriggerEvent(status: rejected_signature)`로 남고 tick은 일어나지 않는다
 
 ### Memory (테스트용)
 
@@ -237,12 +246,28 @@ tracker:
   kind: github
   api_key: $GITHUB_TOKEN
   repo: owner/repo
+  webhook_secret: $GITHUB_WEBHOOK_SECRET
   active_states: [Todo, In Progress]
 ```
 
 - GitHub REST API v3를 사용한다
 - state는 issue label을 기반으로 매핑한다
-- 현재 범위는 read/sync 중심이며 외부 mutation은 후속 범위다
+- verified webhook endpoint는 `/webhooks/github` 이다
+- secret은 `X-Hub-Signature-256` raw-body HMAC-SHA256으로 검증한다
+- duplicate delivery id는 ignored event로 기록되고 새 tick을 enqueue하지 않는다
+- 현재 범위는 read/sync와 verified trigger ingestion까지이며 외부 mutation은 후속 범위다
+
+### Trigger Triage
+
+workflow detail과 dashboard는 trigger ledger(`WorkflowTriggerEvent`)와 summary state(`OrchestratorState`)를 같이 보여준다.
+
+- `rejected_signature`: webhook auth 실패다. secret/header/raw body mismatch 또는 Linear timestamp 문제다. workflow tick은 실행되지 않는다.
+- `failed`: trigger는 accept 되었지만 `WorkflowPollJob` 또는 `orchestrator.tick` 단계에서 실패한 경우다. `last_tick_error`를 본다.
+- retry backlog: trigger 자체는 성공했지만 issue execution이 실패해서 `RetryEntry`에 쌓인 경우다. dashboard의 retry/failure table을 본다.
+
+poll은 이제 sole trigger path가 아니라 fallback이다. webhook-capable workflow도 poll은 누락 delivery 보조 수단으로 유지된다.
+
+auth/authorization과 external tracker mutation은 아직 범위 밖이다.
 
 ---
 

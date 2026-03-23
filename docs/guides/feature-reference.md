@@ -76,6 +76,33 @@ sequenceDiagram
 - managed poll path는 recurring `PollJob` → `WorkflowPollJob.perform_later(workflow_id:)` → workflow-scoped orchestrator tick 흐름을 탄다
 - runtime persistence는 `managed_workflow_id` 기준으로 복원/조회된다
 
+### Managed trigger path
+
+managed workflow trigger는 source별 entrypoint는 다르지만 내부에서는 같은 path로 정규화된다.
+
+```mermaid
+sequenceDiagram
+    participant Entry as "Poll / Controller / Webhook"
+    participant Scheduler as WorkflowTriggerScheduler
+    participant Ledger as WorkflowTriggerEvent
+    participant Job as WorkflowPollJob
+    participant OR as Orchestrator
+    participant State as OrchestratorState
+
+    Entry->>Scheduler: enqueue(workflow_id, source, delivery_id?)
+    Scheduler->>Ledger: accepted / ignored_* / rejected_signature
+    Scheduler->>Job: perform_later(trigger_event_id)
+    Job->>Ledger: running
+    Job->>OR: tick
+    Job->>Ledger: succeeded / failed
+    Job->>State: last_trigger_* / last_tick_*
+```
+
+- recurring poll, manual refresh, database tracker write, verified webhook이 같은 scheduler contract를 쓴다
+- webhook request thread는 verify + route + enqueue만 하고 orchestrator를 직접 호출하지 않는다
+- `WorkflowTriggerEvent`는 append-only audit이고, `OrchestratorState`는 UI용 summary만 가진다
+- paused workflow는 recurring poll/webhook routing 대상에서 제외된다
+
 ---
 
 ## 2. 오케스트레이션 루프
