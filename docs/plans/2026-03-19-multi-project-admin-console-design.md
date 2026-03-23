@@ -33,6 +33,14 @@ database tracker 세부 계획은 `docs/plans/2026-03-13-tracker-database.md`를
 
 이 문서의 cutover 세부 구현과 검증 항목은 implementation plan의 Task 12/13을 source of truth로 둔다.
 
+### Cutover Follow-Ups
+
+DB-managed mode 전환 이후에도 다음 항목은 후속 범위로 남긴다.
+
+- `github` tracker write/read 확장
+- webhook trigger 및 signature verification
+- 인증/권한 모델
+
 ## Assumptions
 
 - 기존 `Symphony.orchestrator` 단일 singleton 구조는 멀티-프로젝트 요구사항에 맞지 않으므로 점진적으로 해체한다.
