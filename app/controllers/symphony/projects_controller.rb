@@ -30,6 +30,12 @@ module Symphony
       end
     end
 
+    def destroy
+      @project = ManagedProject.find(params[:id])
+      @project.destroy!
+      redirect_to "/projects"
+    end
+
     def show
       @project = ManagedProject.includes(:managed_workflows).find(params[:id])
       @workflow_rows = @project.managed_workflows.order(:name).map do |workflow|

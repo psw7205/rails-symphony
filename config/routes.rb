@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   post "projects", to: "symphony/projects#create"
   get "projects/:id/edit", to: "symphony/projects#edit"
   patch "projects/:id", to: "symphony/projects#update"
+  delete "projects/:id", to: "symphony/projects#destroy"
   get "projects/:id", to: "symphony/projects#show"
   get "agent_connections/new", to: "symphony/agent_connections#new"
   post "agent_connections", to: "symphony/agent_connections#create"

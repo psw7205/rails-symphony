@@ -132,6 +132,15 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "DELETE /projects/:id destroys a managed project" do
+    project = Symphony::ManagedProject.create!(name: "Deletable Project", slug: "deletable-project", status: "active")
+
+    delete "/projects/#{project.id}"
+
+    assert_redirected_to "/projects"
+    assert_nil Symphony::ManagedProject.find_by(id: project.id)
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
