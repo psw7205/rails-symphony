@@ -16,6 +16,22 @@ class Symphony::Trackers::GithubIssuesTest < ActiveSupport::TestCase
     assert_equal [ :read_issues, :read_issue_states, :refresh ], @tracker.capabilities
   end
 
+  test "initializes a connection and sends auth headers" do
+    stub_request(:get, "#{@endpoint}/repos/owner/repo/issues")
+      .with(
+        headers: {
+          "Authorization" => "token ghp_test",
+          "Accept" => "application/vnd.github+json"
+        },
+        query: { labels: "Todo", state: "open", per_page: "100", page: "1" }
+      )
+      .to_return(status: 200, body: "[]", headers: { "Content-Type" => "application/json" })
+
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
+
+    assert result[:ok]
+  end
+
   test "fetch_candidate_issues returns issues matching active state labels" do
     stub_github_issues(
       query: { labels: "Todo", state: "open", per_page: "100", page: "1" },
@@ -73,6 +89,18 @@ class Symphony::Trackers::GithubIssuesTest < ActiveSupport::TestCase
     assert result[:ok]
     assert_equal [ "node-1", "node-2" ], result[:issues].map(&:id).sort
     assert_equal [ "Closed", "Todo" ], result[:issues].map(&:state).sort
+  end
+
+  test "fetch_issues_by_states returns issues matching given states" do
+    stub_github_issues(
+      query: { labels: "Todo", state: "open", per_page: "100", page: "1" },
+      body: [ make_issue(node_id: "node-3", number: 3, title: "Todo state issue", labels: [ "Todo" ]) ]
+    )
+
+    result = @tracker.fetch_issues_by_states([ "Todo" ])
+
+    assert result[:ok]
+    assert_equal [ "owner/repo#3" ], result[:issues].map(&:identifier)
   end
 
   test "fetch_issues_by_states with empty states returns empty" do
