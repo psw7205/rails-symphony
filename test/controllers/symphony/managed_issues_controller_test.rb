@@ -112,6 +112,26 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "In Progress", issue.state
   end
 
+  test "PATCH /workflows/:workflow_id/issues/:id renders validation errors" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-invalid-update-workflow", name: "Managed Issues Invalid Update Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: workflow,
+      identifier: "MI-INVALID-1",
+      title: "Editable managed issue",
+      state: "Todo"
+    )
+
+    patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
+      managed_issue: {
+        identifier: "",
+        title: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Identifier can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
