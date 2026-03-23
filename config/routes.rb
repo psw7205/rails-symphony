@@ -32,6 +32,8 @@ Rails.application.routes.draw do
   delete "workflows/:workflow_id/issues/:id", to: "symphony/managed_issues#destroy"
   get "workflows/:workflow_id/issues", to: "symphony/managed_issues#index"
   get "workflows/:id", to: "symphony/workflows#show"
+  post "webhooks/github", to: "symphony/webhooks/github#create"
+  post "webhooks/linear", to: "symphony/webhooks/linear#create"
 
   # JSON API (SPEC 13.7.2)
   namespace :api do

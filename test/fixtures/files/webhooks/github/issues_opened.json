@@ -1,0 +1,18 @@
+{
+  "action": "opened",
+  "issue": {
+    "id": 1,
+    "node_id": "I_kwDOA1",
+    "number": 1347,
+    "title": "Webhook issue",
+    "body": "Created from GitHub webhook"
+  },
+  "repository": {
+    "id": 1296269,
+    "full_name": "octocat/Hello-World"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1
+  }
+}
