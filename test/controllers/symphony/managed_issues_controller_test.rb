@@ -24,6 +24,23 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Managed issue one"
   end
 
+  test "GET /workflows/:workflow_id/issues renders managed issue CRUD actions" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-actions-workflow", name: "Managed Issues Actions Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: workflow,
+      identifier: "MI-ACTIONS-1",
+      title: "Managed issue actions",
+      state: "Todo"
+    )
+
+    get "/workflows/#{workflow.id}/issues"
+
+    assert_response :success
+    assert_includes response.body, "/workflows/#{workflow.id}/issues/new"
+    assert_includes response.body, "/workflows/#{workflow.id}/issues/#{issue.id}/edit"
+    assert_includes response.body, "/workflows/#{workflow.id}/issues/#{issue.id}"
+  end
+
   test "GET /workflows/:workflow_id/issues returns 404 for non-database workflows" do
     workflow = build_managed_workflow(tracker_kind: "memory", slug: "non-database-workflow", name: "Non Database Workflow")
 

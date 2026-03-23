@@ -11,6 +11,15 @@
     </header>
 
     <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Managed issues</h2>
+          <p class="section-copy">Create, update, and remove database-tracked issues for this workflow.</p>
+        </div>
+
+        <%= link_to "New managed issue", "/workflows/#{@workflow.id}/issues/new" %>
+      </div>
+
       <% if @managed_issues.empty? %>
         <p class="empty-state">No managed issues.</p>
       <% else %>
@@ -21,6 +30,7 @@
                 <th>Issue</th>
                 <th>Title</th>
                 <th>State</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -29,6 +39,10 @@
                   <td><%= issue.identifier %></td>
                   <td><%= issue.title %></td>
                   <td><%= issue.state %></td>
+                  <td>
+                    <%= link_to "Edit", "/workflows/#{@workflow.id}/issues/#{issue.id}/edit" %>
+                    <%= button_to "Delete", "/workflows/#{@workflow.id}/issues/#{issue.id}", method: :delete %>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
