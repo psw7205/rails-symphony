@@ -31,6 +31,12 @@ module Symphony
       end
     end
 
+    def destroy
+      @agent_connection = AgentConnection.find(params[:id])
+      @agent_connection.destroy!
+      redirect_to "/projects"
+    end
+
     private
       def agent_connection_params
         params.require(:agent_connection).permit(:name, :kind, :status)

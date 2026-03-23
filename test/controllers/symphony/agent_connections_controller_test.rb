@@ -103,6 +103,20 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "DELETE /agent_connections/:id destroys an agent connection" do
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Deletable Codex Connection",
+      kind: "codex",
+      status: "active",
+      config: { "codex" => { "command" => "bin/codex app-server" } }
+    )
+
+    delete "/agent_connections/#{agent_connection.id}"
+
+    assert_redirected_to "/projects"
+    assert_nil Symphony::AgentConnection.find_by(id: agent_connection.id)
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
