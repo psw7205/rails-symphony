@@ -1,6 +1,10 @@
 module Symphony
   module Trackers
     class Base
+      def capabilities
+        [ :read_issues, :read_issue_states, :refresh ]
+      end
+
       def fetch_candidate_issues(active_states:)
         raise NotImplementedError
       end
