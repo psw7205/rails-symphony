@@ -65,4 +65,18 @@ class SymphonyTest < ActiveSupport::TestCase
       listen_singleton.remove_method :__legacy_boot_test_to
     end
   end
+
+  test "legacy tracker builder supports github tracker config" do
+    config = Symphony::ServiceConfig.new(
+      "tracker" => {
+        "kind" => "github",
+        "repo" => "owner/repo",
+        "api_key" => "ghp_test"
+      }
+    )
+
+    tracker = Symphony.send(:build_tracker, config)
+
+    assert_instance_of Symphony::Trackers::GithubIssues, tracker
+  end
 end

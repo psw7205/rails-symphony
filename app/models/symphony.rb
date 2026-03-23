@@ -75,6 +75,13 @@ module Symphony
       )
     when "memory"
       Trackers::Memory.new
+    when "github"
+      Trackers::GithubIssues.new(
+        api_key: cfg.tracker_api_key,
+        repo: cfg.tracker_repo,
+        endpoint: cfg.tracker_endpoint,
+        active_states: cfg.active_states
+      )
     else
       raise "Unsupported tracker kind: #{cfg.tracker_kind}"
     end
