@@ -3,6 +3,7 @@ module Symphony
     DEFAULT_ACTIVE_STATES = [ "Todo", "In Progress" ].freeze
     DEFAULT_TERMINAL_STATES = [ "Closed", "Cancelled", "Canceled", "Duplicate", "Done" ].freeze
     DEFAULT_LINEAR_ENDPOINT = "https://api.linear.app/graphql".freeze
+    DEFAULT_GITHUB_ENDPOINT = "https://api.github.com".freeze
     SUPPORTED_TRACKER_KINDS = %w[linear memory database github].freeze
 
     def initialize(config)
@@ -11,12 +12,26 @@ module Symphony
 
     # Tracker
     def tracker_kind = dig("tracker", "kind")
-    def tracker_endpoint = dig("tracker", "endpoint") || DEFAULT_LINEAR_ENDPOINT
+    def tracker_endpoint
+      dig("tracker", "endpoint") || case tracker_kind
+      when "github"
+        DEFAULT_GITHUB_ENDPOINT
+      else
+        DEFAULT_LINEAR_ENDPOINT
+      end
+    end
     def tracker_project_slug = dig("tracker", "project_slug")
+    def tracker_repo = dig("tracker", "repo")
 
     def tracker_api_key
       raw = dig("tracker", "api_key")
-      resolved = resolve_env_var(raw) || ENV["LINEAR_API_KEY"]
+      fallback = case tracker_kind
+      when "github"
+        ENV["GITHUB_TOKEN"]
+      else
+        ENV["LINEAR_API_KEY"]
+      end
+      resolved = resolve_env_var(raw) || fallback
       resolved.nil? || resolved.empty? ? nil : resolved
     end
 
@@ -80,6 +95,9 @@ module Symphony
       if tracker_kind == "linear"
         errors << "tracker.api_key is required" unless tracker_api_key
         errors << "tracker.project_slug is required" unless tracker_project_slug
+      elsif tracker_kind == "github"
+        errors << "tracker.api_key is required" unless tracker_api_key
+        errors << "tracker.repo is required" if tracker_repo.to_s.strip.empty?
       end
       errors << "codex.command is required" if codex_command.to_s.strip.empty?
 

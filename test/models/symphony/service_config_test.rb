@@ -82,12 +82,56 @@ class Symphony::ServiceConfigTest < ActiveSupport::TestCase
     assert_equal :ok, config.validate!
   end
 
-  test "validate! accepts github tracker config" do
+  test "validate! accepts github tracker config with required fields" do
     config = Symphony::ServiceConfig.new({
-      "tracker" => { "kind" => "github" }
+      "tracker" => { "kind" => "github", "repo" => "owner/repo", "api_key" => "ghp_test" }
     })
 
     assert_equal :ok, config.validate!
+  end
+
+  test "validate! rejects github tracker without repo" do
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "github", "api_key" => "ghp_test" }
+    })
+
+    result = config.validate!
+
+    assert_equal :validation_error, result[:error]
+    assert_includes result[:messages], "tracker.repo is required"
+  end
+
+  test "validate! rejects github tracker without api_key" do
+    original_github_token = ENV.delete("GITHUB_TOKEN")
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "github", "repo" => "owner/repo" }
+    })
+
+    result = config.validate!
+
+    assert_equal :validation_error, result[:error]
+    assert_includes result[:messages], "tracker.api_key is required"
+  ensure
+    ENV["GITHUB_TOKEN"] = original_github_token if original_github_token
+  end
+
+  test "tracker_api_key falls back to GITHUB_TOKEN for github kind" do
+    ENV["GITHUB_TOKEN"] = "ghp_env"
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "github", "repo" => "owner/repo" }
+    })
+
+    assert_equal "ghp_env", config.tracker_api_key
+  ensure
+    ENV.delete("GITHUB_TOKEN")
+  end
+
+  test "tracker_endpoint defaults to GitHub API for github kind" do
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "kind" => "github", "repo" => "owner/repo", "api_key" => "ghp_test" }
+    })
+
+    assert_equal "https://api.github.com", config.tracker_endpoint
   end
 
   test "validate! returns error for missing tracker kind" do
