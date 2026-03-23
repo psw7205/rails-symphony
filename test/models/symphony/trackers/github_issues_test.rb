@@ -34,6 +34,31 @@ class Symphony::Trackers::GithubIssuesTest < ActiveSupport::TestCase
     assert_equal 2, result[:issues].find { |issue| issue.identifier == "owner/repo#1" }.priority
   end
 
+  test "fetch_candidate_issues paginates across GitHub link headers" do
+    stub_request(:get, "#{@endpoint}/repos/owner/repo/issues")
+      .with(query: { labels: "Todo", state: "open", per_page: "100", page: "1" })
+      .to_return(
+        status: 200,
+        body: [ make_issue(node_id: "node-1", number: 1, title: "Todo issue one", labels: [ "Todo" ]) ].to_json,
+        headers: {
+          "Content-Type" => "application/json",
+          "Link" => '<https://api.github.com/repos/owner/repo/issues?labels=Todo&state=open&per_page=100&page=2>; rel="next"'
+        }
+      )
+    stub_request(:get, "#{@endpoint}/repos/owner/repo/issues")
+      .with(query: { labels: "Todo", state: "open", per_page: "100", page: "2" })
+      .to_return(
+        status: 200,
+        body: [ make_issue(node_id: "node-2", number: 2, title: "Todo issue two", labels: [ "Todo" ]) ].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
+
+    assert result[:ok]
+    assert_equal [ "owner/repo#1", "owner/repo#2" ], result[:issues].map(&:identifier).sort
+  end
+
   test "fetch_issue_states_by_ids returns issues by node_id" do
     stub_github_issues(
       query: { state: "all", per_page: "100", page: "1" },
@@ -76,6 +101,34 @@ class Symphony::Trackers::GithubIssuesTest < ActiveSupport::TestCase
     result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
 
     assert_equal :github_transport_error, result[:error]
+  end
+
+  test "reconfigure updates repo and rebuilds connection when endpoint changes" do
+    @tracker.reconfigure(
+      api_key: "ghp_reconfigured",
+      repo: "other/repo",
+      endpoint: "https://ghe.example/api/v3",
+      active_states: [ "Todo" ]
+    )
+
+    stub_request(:get, "https://ghe.example/api/v3/repos/other/repo/issues")
+      .with(
+        headers: {
+          "Authorization" => "token ghp_reconfigured",
+          "Accept" => "application/vnd.github+json"
+        },
+        query: { labels: "Todo", state: "open", per_page: "100", page: "1" }
+      )
+      .to_return(
+        status: 200,
+        body: [ make_issue(node_id: "node-9", number: 9, title: "Reconfigured issue", labels: [ "Todo" ]) ].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    result = @tracker.fetch_candidate_issues(active_states: [ "Todo" ])
+
+    assert result[:ok]
+    assert_equal [ "other/repo#9" ], result[:issues].map(&:identifier)
   end
 
   private

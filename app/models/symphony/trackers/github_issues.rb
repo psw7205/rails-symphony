@@ -103,7 +103,7 @@ module Symphony
         end
 
         def repo_issues_path
-          "/repos/#{@repo}/issues"
+          "repos/#{@repo}/issues"
         end
 
         def normalize_issue(issue, active_states:)
