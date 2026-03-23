@@ -37,15 +37,27 @@ module Symphony
     end
 
     def show
-      @project = ManagedProject.includes(:managed_workflows).find(params[:id])
+      @project = ManagedProject.includes(managed_workflows: :tracker_connection).find(params[:id])
       @workflow_rows = @project.managed_workflows.order(:name).map do |workflow|
-        { managed_workflow: workflow, snapshot: WorkflowRuntimeManager.snapshot(workflow.id) }
+        snapshot = WorkflowRuntimeManager.snapshot(workflow.id)
+        {
+          managed_workflow: workflow,
+          snapshot: snapshot,
+          health: workflow_health(snapshot)
+        }
       end
     end
 
     private
       def project_params
         params.require(:managed_project).permit(:name, :slug, :status, :description)
+      end
+
+      def workflow_health(snapshot)
+        return "retrying" if snapshot[:counts][:retrying].positive?
+        return "running" if snapshot[:counts][:running].positive?
+
+        "idle"
       end
   end
 end

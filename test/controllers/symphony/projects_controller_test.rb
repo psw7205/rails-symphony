@@ -54,6 +54,8 @@ class Symphony::ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Project Alpha"
     assert_includes response.body, "Alpha Workflow"
+    assert_includes response.body, "Health"
+    assert_includes response.body, "running"
     assert_includes response.body, "memory"
     assert_match(/<td>1<\/td>/, response.body)
   end

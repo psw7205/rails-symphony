@@ -20,6 +20,7 @@
               <tr>
                 <th>Workflow</th>
                 <th>Status</th>
+                <th>Health</th>
                 <th>Tracker</th>
                 <th>Running</th>
                 <th>Retrying</th>
@@ -31,6 +32,7 @@
                 <tr>
                   <td><%= workflow.name %></td>
                   <td><%= workflow.status %></td>
+                  <td><%= row[:health] %></td>
                   <td><%= workflow.tracker_connection.kind %></td>
                   <td><%= row[:snapshot][:counts][:running] %></td>
                   <td><%= row[:snapshot][:counts][:retrying] %></td>
