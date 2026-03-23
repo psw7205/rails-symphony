@@ -180,6 +180,27 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "PATCH /workflows/:id renders an error for malformed runtime config JSON" do
+    workflow = build_managed_workflow
+
+    patch "/workflows/#{workflow.id}", params: {
+      managed_workflow: {
+        managed_project_id: workflow.managed_project_id,
+        tracker_connection_id: workflow.tracker_connection_id,
+        agent_connection_id: workflow.agent_connection_id,
+        name: workflow.name,
+        slug: workflow.slug,
+        status: workflow.status,
+        prompt_template: workflow.prompt_template,
+        runtime_config_json: "{\"workspace\":"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Runtime config json is invalid JSON"
+    assert_equal({ "workspace" => { "root" => "workflow-show-workspaces" } }, workflow.reload.runtime_config)
+  end
+
   test "GET /workflows/:id renders workflow retry rows" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
