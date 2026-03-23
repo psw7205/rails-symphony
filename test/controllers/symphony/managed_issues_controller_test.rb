@@ -132,6 +132,21 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Identifier can&#39;t be blank"
   end
 
+  test "DELETE /workflows/:workflow_id/issues/:id destroys a managed issue" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-destroy-workflow", name: "Managed Issues Destroy Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: workflow,
+      identifier: "MI-DELETE-1",
+      title: "Deletable managed issue",
+      state: "Todo"
+    )
+
+    delete "/workflows/#{workflow.id}/issues/#{issue.id}"
+
+    assert_redirected_to "/workflows/#{workflow.id}/issues"
+    assert_nil Symphony::ManagedIssue.find_by(id: issue.id)
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

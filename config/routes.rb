@@ -29,6 +29,7 @@ Rails.application.routes.draw do
   post "workflows/:workflow_id/issues", to: "symphony/managed_issues#create"
   get "workflows/:workflow_id/issues/:id/edit", to: "symphony/managed_issues#edit"
   patch "workflows/:workflow_id/issues/:id", to: "symphony/managed_issues#update"
+  delete "workflows/:workflow_id/issues/:id", to: "symphony/managed_issues#destroy"
   get "workflows/:workflow_id/issues", to: "symphony/managed_issues#index"
   get "workflows/:id", to: "symphony/workflows#show"
 
