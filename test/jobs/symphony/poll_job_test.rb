@@ -29,6 +29,35 @@ class Symphony::PollJobTest < ActiveJob::TestCase
     assert_equal "enqueued", event.status
   end
 
+  test "perform continues scheduling later workflows when one managed workflow enqueue fails" do
+    first_workflow = build_managed_workflow(slug: "poll-first-workflow", name: "Poll First Workflow", status: "active")
+    second_workflow = build_managed_workflow(slug: "poll-second-workflow", name: "Poll Second Workflow", status: "active")
+    original_enqueue = Symphony::WorkflowTriggerScheduler.method(:enqueue)
+
+    scheduler_singleton = Symphony::WorkflowTriggerScheduler.singleton_class
+    scheduler_singleton.class_eval do
+      define_method(:enqueue) do |workflow_id:, source:, **kwargs|
+        raise "scheduler_failed" if workflow_id == first_workflow.id
+
+        original_enqueue.call(workflow_id: workflow_id, source: source, **kwargs)
+      end
+    end
+
+    begin
+      Symphony::PollJob.perform_now
+    ensure
+      scheduler_singleton.class_eval do
+        define_method(:enqueue) do |workflow_id:, source:, **kwargs|
+          original_enqueue.call(workflow_id: workflow_id, source: source, **kwargs)
+        end
+      end
+    end
+
+    poll_jobs = enqueued_jobs.select { |job| job[:job] == Symphony::WorkflowPollJob }
+    assert_equal [ second_workflow.id ], poll_jobs.map { |job| job[:args].first["workflow_id"] }
+    refute_nil Symphony::WorkflowTriggerEvent.find_by(managed_workflow_id: second_workflow.id, source: "poll")
+  end
+
   test "perform still ticks the legacy orchestrator when present" do
     tick_count = 0
     Symphony.orchestrator = Object.new.tap do |orchestrator|
