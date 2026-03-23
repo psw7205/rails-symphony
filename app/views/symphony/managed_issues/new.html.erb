@@ -11,6 +11,14 @@
     </header>
 
     <section class="section-card">
+      <% if @managed_issue.errors.any? %>
+        <div class="empty-state">
+          <% @managed_issue.errors.full_messages.each do |message| %>
+            <p><%= message %></p>
+          <% end %>
+        </div>
+      <% end %>
+
       <%= form_with model: @managed_issue, url: "/workflows/#{@workflow.id}/issues" do |form| %>
         <div>
           <%= form.label :identifier %>

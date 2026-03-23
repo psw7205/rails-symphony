@@ -58,6 +58,20 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_equal workflow.id, issue.managed_workflow_id
   end
 
+  test "POST /workflows/:workflow_id/issues renders validation errors" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-invalid-workflow", name: "Managed Issues Invalid Workflow")
+
+    post "/workflows/#{workflow.id}/issues", params: {
+      managed_issue: {
+        identifier: "",
+        title: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Identifier can&#39;t be blank"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

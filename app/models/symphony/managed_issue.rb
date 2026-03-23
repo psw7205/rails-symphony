@@ -5,6 +5,7 @@ module Symphony
 
     belongs_to :managed_workflow, class_name: "Symphony::ManagedWorkflow"
 
+    validates :identifier, :title, presence: true
     validate :managed_workflow_uses_database_tracker
 
     private
