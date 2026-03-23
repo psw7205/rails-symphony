@@ -27,6 +27,39 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "WS-1"
   end
 
+  test "GET /workflows/:id renders tracker and agent connection record details" do
+    project = Symphony::ManagedProject.create!(name: "Workflow Summary Project", slug: "workflow-summary-project", status: "active")
+    tracker_connection = Symphony::TrackerConnection.create!(
+      name: "Workflow Summary Tracker",
+      kind: "linear",
+      status: "inactive",
+      config: { project_slug: "OPS" }
+    )
+    agent_connection = Symphony::AgentConnection.create!(
+      name: "Workflow Summary Agent",
+      kind: "codex",
+      status: "inactive",
+      config: { codex: { command: "bin/codex app-server" } }
+    )
+    workflow = Symphony::ManagedWorkflow.create!(
+      managed_project: project,
+      tracker_connection: tracker_connection,
+      agent_connection: agent_connection,
+      name: "Workflow Summary",
+      slug: "workflow-summary",
+      status: "active",
+      prompt_template: "Workflow summary prompt",
+      runtime_config: { workspace: { root: "workflow-summary-workspaces" } }
+    )
+
+    get "/workflows/#{workflow.id}"
+
+    assert_response :success
+    assert_includes response.body, "Workflow Summary Tracker"
+    assert_includes response.body, "Workflow Summary Agent"
+    assert_includes response.body, "inactive"
+  end
+
   test "GET /workflows/new renders the workflow form" do
     project = Symphony::ManagedProject.create!(name: "Workflow Form Project", slug: "workflow-form-project", status: "active")
     tracker_connection = Symphony::TrackerConnection.create!(name: "Workflow Form Tracker", kind: "memory", status: "active", config: {})

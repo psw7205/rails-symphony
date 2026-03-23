@@ -45,6 +45,42 @@
     <section class="section-card">
       <div class="section-header">
         <div>
+          <h2 class="section-title">Connections</h2>
+          <p class="section-copy">Tracker and agent records currently bound to this workflow.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Kind</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Tracker</td>
+              <td><%= @workflow.tracker_connection.name %></td>
+              <td><%= @workflow.tracker_connection.kind %></td>
+              <td><%= @workflow.tracker_connection.status %></td>
+            </tr>
+            <tr>
+              <td>Agent</td>
+              <td><%= @workflow.agent_connection.name %></td>
+              <td><%= @workflow.agent_connection.kind %></td>
+              <td><%= @workflow.agent_connection.status %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
           <h2 class="section-title">Capabilities</h2>
           <p class="section-copy">Tracker capabilities currently available for this workflow.</p>
         </div>
