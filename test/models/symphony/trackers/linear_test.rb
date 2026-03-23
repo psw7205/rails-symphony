@@ -11,6 +11,10 @@ class Symphony::Trackers::LinearTest < ActiveSupport::TestCase
     )
   end
 
+  test "capabilities stay read-only" do
+    assert_equal [ :read_issues, :read_issue_states, :refresh ], @tracker.capabilities
+  end
+
   test "fetch_candidate_issues returns normalized issues" do
     stub_linear_poll([ make_linear_node("id1", "MT-1", "Fix bug", "Todo", priority: 1) ])
 
