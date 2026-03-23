@@ -30,6 +30,22 @@ class Symphony::WorkflowRuntimeFactoryTest < ActiveSupport::TestCase
     assert_instance_of Symphony::Trackers::Database, context.tracker
   end
 
+  test "build creates a github tracker runtime context for github workflows" do
+    workflow = build_managed_workflow(
+      slug: "github-runtime-factory-workflow",
+      name: "GitHub Runtime Factory Workflow",
+      tracker_kind: "github",
+      tracker_config: {
+        repo: "owner/repo",
+        api_key: "ghp_test"
+      }
+    )
+
+    context = Symphony::WorkflowRuntimeFactory.build(workflow.id)
+
+    assert_instance_of Symphony::Trackers::GithubIssues, context.tracker
+  end
+
   test "managed runtime dispatch enqueues an agent worker job with workflow id" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeFactory.build(workflow.id)
@@ -53,13 +69,13 @@ class Symphony::WorkflowRuntimeFactoryTest < ActiveSupport::TestCase
   end
 
   private
-    def build_managed_workflow(slug: "runtime-factory-workflow", name: "Runtime Factory Workflow", tracker_kind: "memory")
+    def build_managed_workflow(slug: "runtime-factory-workflow", name: "Runtime Factory Workflow", tracker_kind: "memory", tracker_config: {})
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
         name: "#{name} Tracker",
         kind: tracker_kind,
         status: "active",
-        config: {}
+        config: tracker_config
       )
       agent_connection = Symphony::AgentConnection.create!(
         name: "#{name} Codex",

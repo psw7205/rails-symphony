@@ -51,6 +51,13 @@ module Symphony
         Trackers::Memory.new
       when "database"
         Trackers::Database.new(managed_workflow: managed_workflow)
+      when "github"
+        Trackers::GithubIssues.new(
+          api_key: config.tracker_api_key,
+          repo: config.tracker_repo,
+          endpoint: config.tracker_endpoint,
+          active_states: config.active_states
+        )
       else
         raise "Unsupported tracker kind: #{config.tracker_kind}"
       end
