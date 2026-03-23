@@ -34,4 +34,13 @@ class Symphony::IssueTest < ActiveSupport::TestCase
     )
     refute issue.has_non_terminal_blockers?([ "done", "closed", "cancelled", "canceled", "duplicate" ])
   end
+
+  test "has_non_terminal_blockers? does not trim terminal state names" do
+    issue = Symphony::Issue.new(
+      id: "x", identifier: "X-1", title: "t", state: "Todo",
+      blocked_by: [ { "id" => "b1", "identifier" => "X-2", "state" => "Done" } ]
+    )
+
+    assert issue.has_non_terminal_blockers?([ " done " ])
+  end
 end

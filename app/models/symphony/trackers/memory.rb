@@ -25,8 +25,8 @@ module Symphony
       end
 
       def fetch_candidate_issues(active_states:)
-        normalized = active_states.map { |s| s.to_s.strip.downcase }
-        filtered = @issues.select { |i| normalized.include?(i.state.to_s.strip.downcase) }
+        normalized = active_states.map { |s| s.to_s.downcase }
+        filtered = @issues.select { |i| normalized.include?(i.state.to_s.downcase) }
         { ok: true, issues: filtered }
       end
 
@@ -38,8 +38,8 @@ module Symphony
 
       def fetch_issues_by_states(states)
         return { ok: true, issues: [] } if states.empty?
-        normalized = states.map { |s| s.to_s.strip.downcase }
-        filtered = @issues.select { |i| normalized.include?(i.state.to_s.strip.downcase) }
+        normalized = states.map { |s| s.to_s.downcase }
+        filtered = @issues.select { |i| normalized.include?(i.state.to_s.downcase) }
         { ok: true, issues: filtered }
       end
     end

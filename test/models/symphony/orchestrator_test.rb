@@ -219,4 +219,30 @@ class Symphony::OrchestratorTest < ActiveSupport::TestCase
     assert_equal 1, @dispatched.size
     assert_equal "MT-6", @dispatched.first[:issue].identifier
   end
+
+  test "whitespace padded todo state is not treated as todo" do
+    issue = Symphony::Issue.new(
+      id: "8", identifier: "MT-8", title: "Padded todo", state: " Todo ", priority: 1,
+      blocked_by: [ { "id" => "9", "identifier" => "MT-9", "state" => "In Progress" } ],
+      created_at: Time.now
+    )
+    tracker = Object.new
+    tracker.define_singleton_method(:fetch_candidate_issues) do |active_states:|
+      { ok: true, issues: [ issue ] }
+    end
+    tracker.define_singleton_method(:fetch_issue_states_by_ids) do |ids|
+      { ok: true, issues: [] }
+    end
+
+    orch = Symphony::Orchestrator.new(
+      tracker: tracker, workspace: @workspace, agent: nil,
+      workflow_store: @store,
+      on_dispatch: ->(dispatched_issue, attempt) { @dispatched << { issue: dispatched_issue, attempt: attempt } }
+    )
+
+    orch.tick
+
+    assert_equal 1, @dispatched.size
+    assert_equal "MT-8", @dispatched.first[:issue].identifier
+  end
 end

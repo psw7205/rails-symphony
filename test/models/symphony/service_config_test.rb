@@ -52,11 +52,19 @@ class Symphony::ServiceConfigTest < ActiveSupport::TestCase
     assert_equal [ "Closed", "Cancelled", "Canceled", "Duplicate", "Done" ], config.terminal_states
   end
 
-  test "parses comma-separated state strings" do
+  test "parses array state config" do
     config = Symphony::ServiceConfig.new({
-      "tracker" => { "active_states" => "Todo, In Progress, Rework" }
+      "tracker" => { "active_states" => [ "Todo", "In Progress", "Rework" ] }
     })
     assert_equal [ "Todo", "In Progress", "Rework" ], config.active_states
+  end
+
+  test "falls back to default when active_states is a string" do
+    config = Symphony::ServiceConfig.new({
+      "tracker" => { "active_states" => "Todo, Rework" }
+    })
+
+    assert_equal [ "Todo", "In Progress" ], config.active_states
   end
 
   test "reads per-state concurrency limits" do
@@ -65,6 +73,15 @@ class Symphony::ServiceConfigTest < ActiveSupport::TestCase
     })
     assert_equal 2, config.max_concurrent_agents_for_state("Merging")
     assert_nil config.max_concurrent_agents_for_state("Todo")
+  end
+
+  test "does not trim per-state concurrency limit names" do
+    config = Symphony::ServiceConfig.new({
+      "agent" => { "max_concurrent_agents_by_state" => { " todo " => 2 } }
+    })
+
+    assert_nil config.max_concurrent_agents_for_state("Todo")
+    assert_equal 2, config.max_concurrent_agents_by_state[" todo "]
   end
 
   test "validate! returns ok for valid config" do

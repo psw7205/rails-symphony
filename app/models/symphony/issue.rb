@@ -20,9 +20,9 @@ module Symphony
     end
 
     def has_non_terminal_blockers?(terminal_states)
-      normalized_terminal = terminal_states.map { |s| s.to_s.strip.downcase }
+      normalized_terminal = terminal_states.map { |s| s.to_s.downcase }
       blocked_by.any? do |blocker|
-        blocker_state = blocker["state"].to_s.strip.downcase
+        blocker_state = blocker["state"].to_s.downcase
         !normalized_terminal.include?(blocker_state)
       end
     end

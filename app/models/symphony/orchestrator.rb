@@ -228,15 +228,15 @@ module Symphony
         end
 
         refreshed = result[:issues].index_by(&:id)
-        terminal = config.terminal_states.map { |s| s.strip.downcase }
-        active = config.active_states.map { |s| s.strip.downcase }
+        terminal = config.terminal_states.map { |s| s.downcase }
+        active = config.active_states.map { |s| s.downcase }
 
         ids.each do |issue_id|
           entry = @running[issue_id]
           next unless entry
 
           issue = refreshed[issue_id]
-          state = issue&.state.to_s.strip.downcase
+          state = issue&.state.to_s.downcase
 
           if issue.nil? || terminal.include?(state)
             request_worker_stop(entry)
@@ -322,12 +322,12 @@ module Symphony
         per_state_limit = config.max_concurrent_agents_for_state(state)
         return true unless per_state_limit
 
-        running_in_state = @running.values.count { |e| e[:issue]&.state.to_s.strip.downcase == state.to_s.strip.downcase }
+        running_in_state = @running.values.count { |e| e[:issue]&.state.to_s.downcase == state.to_s.downcase }
         running_in_state < per_state_limit
       end
 
       def blocked_todo?(issue)
-        return false unless issue.state.to_s.strip.downcase == "todo"
+        return false unless issue.state.to_s.downcase == "todo"
         issue.has_non_terminal_blockers?(config.terminal_states)
       end
 

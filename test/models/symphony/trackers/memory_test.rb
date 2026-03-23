@@ -25,11 +25,25 @@ class Symphony::Trackers::MemoryTest < ActiveSupport::TestCase
     assert_equal 2, result[:issues].length
   end
 
+  test "fetch_candidate_issues does not trim configured states" do
+    result = @tracker.fetch_candidate_issues(active_states: [ " Todo " ])
+
+    assert result[:ok]
+    assert_empty result[:issues]
+  end
+
   test "fetch_issues_by_states filters by normalized state" do
     result = @tracker.fetch_issues_by_states([ "done" ])
     assert result[:ok]
     assert_equal 1, result[:issues].length
     assert_equal "MT-3", result[:issues].first.identifier
+  end
+
+  test "fetch_issues_by_states does not trim configured states" do
+    result = @tracker.fetch_issues_by_states([ " done " ])
+
+    assert result[:ok]
+    assert_empty result[:issues]
   end
 
   test "fetch_issues_by_states with empty list returns empty" do

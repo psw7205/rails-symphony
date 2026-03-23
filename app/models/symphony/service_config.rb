@@ -66,12 +66,12 @@ module Symphony
       raw = @config.dig("agent", "max_concurrent_agents_by_state") || {}
       raw.each_with_object({}) do |(state, limit), hash|
         int_limit = limit.to_i
-        hash[state.to_s.strip.downcase] = int_limit if int_limit > 0
+        hash[state.to_s.downcase] = int_limit if int_limit > 0
       end
     end
 
     def max_concurrent_agents_for_state(state_name)
-      max_concurrent_agents_by_state[state_name.to_s.strip.downcase]
+      max_concurrent_agents_by_state[state_name.to_s.downcase]
     end
 
     # Codex
@@ -144,7 +144,6 @@ module Symphony
       def parse_state_list(raw, default)
         case raw
         when Array then raw.map(&:to_s)
-        when String then raw.split(",").map(&:strip)
         else default
         end
       end
