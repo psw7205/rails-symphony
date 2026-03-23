@@ -44,6 +44,22 @@ class Symphony::AgentConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "POST /agent_connections renders an error for malformed config JSON" do
+    assert_no_difference("Symphony::AgentConnection.count") do
+      post "/agent_connections", params: {
+        agent_connection: {
+          name: "Broken Agent Connection",
+          kind: "codex",
+          status: "active",
+          config_json: "{\"codex\":"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Config json is invalid JSON"
+  end
+
   test "GET /agent_connections/:id/edit renders the agent connection form" do
     agent_connection = Symphony::AgentConnection.create!(
       name: "Editable Codex Connection",
