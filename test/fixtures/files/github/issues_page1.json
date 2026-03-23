@@ -1,0 +1,29 @@
+[
+  {
+    "node_id": "node-101",
+    "number": 101,
+    "title": "Todo issue one",
+    "body": "Todo issue one body",
+    "state": "open",
+    "labels": [
+      { "name": "Todo" },
+      { "name": "priority:2" }
+    ],
+    "html_url": "https://github.com/owner/repo/issues/101",
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "node_id": "node-102",
+    "number": 102,
+    "title": "Todo issue two",
+    "body": "Todo issue two body",
+    "state": "open",
+    "labels": [
+      { "name": "Todo" }
+    ],
+    "html_url": "https://github.com/owner/repo/issues/102",
+    "created_at": "2026-01-02T00:00:00Z",
+    "updated_at": "2026-01-02T00:00:00Z"
+  }
+]

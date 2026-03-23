@@ -1,0 +1,15 @@
+[
+  {
+    "node_id": "node-103",
+    "number": 103,
+    "title": "Todo issue three",
+    "body": "Todo issue three body",
+    "state": "open",
+    "labels": [
+      { "name": "Todo" }
+    ],
+    "html_url": "https://github.com/owner/repo/issues/103",
+    "created_at": "2026-01-03T00:00:00Z",
+    "updated_at": "2026-01-03T00:00:00Z"
+  }
+]
