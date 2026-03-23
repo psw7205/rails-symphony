@@ -1,0 +1,44 @@
+<main class="app-shell">
+  <section class="dashboard-shell">
+    <header class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Symphony Admin</p>
+          <h1 class="hero-title">New managed issue</h1>
+          <p class="hero-copy">Create a managed issue in the database tracker ledger.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-card">
+      <%= form_with model: @managed_issue, url: "/workflows/#{@workflow.id}/issues" do |form| %>
+        <div>
+          <%= form.label :identifier %>
+          <%= form.text_field :identifier %>
+        </div>
+
+        <div>
+          <%= form.label :title %>
+          <%= form.text_field :title %>
+        </div>
+
+        <div>
+          <%= form.label :description %>
+          <%= form.text_area :description %>
+        </div>
+
+        <div>
+          <%= form.label :priority %>
+          <%= form.text_field :priority %>
+        </div>
+
+        <div>
+          <%= form.label :state %>
+          <%= form.text_field :state %>
+        </div>
+
+        <%= form.submit "Create managed issue" %>
+      <% end %>
+    </section>
+  </section>
+</main>
