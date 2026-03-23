@@ -230,6 +230,21 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "update_issue"
   end
 
+  test "GET /workflows/:id shows managed issue action only when capability is available" do
+    database_workflow = build_managed_workflow(tracker_kind: "database", slug: "workflow-database-actions", name: "Workflow Database Actions")
+    memory_workflow = build_managed_workflow(tracker_kind: "memory", slug: "workflow-memory-actions", name: "Workflow Memory Actions")
+
+    get "/workflows/#{database_workflow.id}"
+    assert_response :success
+    assert_includes response.body, "/workflows/#{database_workflow.id}/issues"
+    assert_includes response.body, "Manage issues"
+
+    get "/workflows/#{memory_workflow.id}"
+    assert_response :success
+    refute_includes response.body, "/workflows/#{memory_workflow.id}/issues"
+    refute_includes response.body, "Manage issues"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

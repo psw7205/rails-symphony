@@ -51,6 +51,9 @@
       </div>
 
       <p class="mono"><%= @capabilities.join(", ") %></p>
+      <% if @capabilities.include?(:create_issue) %>
+        <p><%= link_to "Manage issues", "/workflows/#{@workflow.id}/issues" %></p>
+      <% end %>
     </section>
 
     <section class="section-card">
