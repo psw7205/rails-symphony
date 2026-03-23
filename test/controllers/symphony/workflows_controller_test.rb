@@ -245,6 +245,15 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Manage issues"
   end
 
+  test "DELETE /workflows/:id destroys a managed workflow" do
+    workflow = build_managed_workflow
+
+    delete "/workflows/#{workflow.id}"
+
+    assert_redirected_to "/projects/#{workflow.managed_project_id}"
+    assert_nil Symphony::ManagedWorkflow.find_by(id: workflow.id)
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

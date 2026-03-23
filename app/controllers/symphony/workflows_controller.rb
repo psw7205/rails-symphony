@@ -37,6 +37,13 @@ module Symphony
       end
     end
 
+    def destroy
+      @workflow = ManagedWorkflow.find(params[:id])
+      project_id = @workflow.managed_project_id
+      @workflow.destroy!
+      redirect_to "/projects/#{project_id}"
+    end
+
     def show
       @workflow = ManagedWorkflow.includes(:managed_project, :tracker_connection, :agent_connection).find(params[:id])
       @snapshot = WorkflowRuntimeManager.snapshot(@workflow.id)
