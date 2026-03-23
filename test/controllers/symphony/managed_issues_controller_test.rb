@@ -72,6 +72,22 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Identifier can&#39;t be blank"
   end
 
+  test "POST /workflows/:workflow_id/issues returns 404 for non-database workflows" do
+    workflow = build_managed_workflow(tracker_kind: "memory", slug: "managed-issues-create-non-database-workflow", name: "Managed Issues Create Non Database Workflow")
+
+    assert_no_difference("Symphony::ManagedIssue.count") do
+      post "/workflows/#{workflow.id}/issues", params: {
+        managed_issue: {
+          identifier: "MI-NON-DB-1",
+          title: "Should not be created",
+          state: "Todo"
+        }
+      }
+    end
+
+    assert_response :not_found
+  end
+
   test "GET /workflows/:workflow_id/issues/:id/edit renders the managed issue form" do
     workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-edit-workflow", name: "Managed Issues Edit Workflow")
     issue = Symphony::ManagedIssue.create!(
@@ -153,6 +169,27 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Scoped managed issue", issue.reload.title
   end
 
+  test "PATCH /workflows/:workflow_id/issues/:id returns 404 for non-database workflows" do
+    workflow = build_managed_workflow(tracker_kind: "memory", slug: "managed-issues-update-non-database-workflow", name: "Managed Issues Update Non Database Workflow")
+    issue_workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-update-database-workflow", name: "Managed Issues Update Database Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: issue_workflow,
+      identifier: "MI-NON-DB-UPDATE-1",
+      title: "Should stay unchanged",
+      state: "Todo"
+    )
+
+    patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
+      managed_issue: {
+        identifier: "MI-NON-DB-UPDATE-1",
+        title: "Updated from wrong tracker kind"
+      }
+    }
+
+    assert_response :not_found
+    assert_equal "Should stay unchanged", issue.reload.title
+  end
+
   test "DELETE /workflows/:workflow_id/issues/:id destroys a managed issue" do
     workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-destroy-workflow", name: "Managed Issues Destroy Workflow")
     issue = Symphony::ManagedIssue.create!(
@@ -182,6 +219,23 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert_equal issue.id, issue.reload.id
+  end
+
+  test "DELETE /workflows/:workflow_id/issues/:id returns 404 for non-database workflows" do
+    workflow = build_managed_workflow(tracker_kind: "memory", slug: "managed-issues-destroy-non-database-workflow", name: "Managed Issues Destroy Non Database Workflow")
+    issue_workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-destroy-database-workflow", name: "Managed Issues Destroy Database Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: issue_workflow,
+      identifier: "MI-NON-DB-DELETE-1",
+      title: "Should stay present",
+      state: "Todo"
+    )
+
+    assert_no_difference("Symphony::ManagedIssue.count") do
+      delete "/workflows/#{workflow.id}/issues/#{issue.id}"
+    end
+
+    assert_response :not_found
   end
 
   private
