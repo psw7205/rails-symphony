@@ -2,222 +2,132 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan.
 
-**Goal:** 외부 트래커 없이 웹 UI로 이슈를 직접 관리하는 DB 기반 자체 트래커 (`tracker.kind: database`) 구현.
+**Goal:** 외부 tracker 없이 admin console 안에서 이슈를 직접 관리하는 DB 기반 tracker (`tracker.kind: database`)를 제공한다.
 
-**Architecture:** 기존 `symphony_issues` 테이블과 `PersistedIssue` AR 모델을 source of truth로 재활용. `Trackers::Database` 어댑터가 `PersistedIssue`를 직접 쿼리하여 `Trackers::Base` 인터페이스를 구현하고, 웹 CRUD 컨트롤러로 이슈 생성/편집/상태 변경을 제공. `identifier`는 `SYM-N` 시퀀스로 자동 생성.
+**Relationship to the multi-project console plan:** 이 문서는 `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`의 database tracker slice를 보조한다. 구현 source of truth는 `ManagedWorkflow` + `ManagedIssue` 기반 멀티-workflow 콘솔 모델이다.
 
-**Tech Stack:** Rails 8, SQLite3, PersistedIssue AR model, ERB views
+**Architecture:** `Trackers::Database`는 더 이상 runtime bookkeeping 테이블(`symphony_issues`)을 재사용하지 않는다. 대신 `symphony_managed_issues` / `Symphony::ManagedIssue`를 database tracker workflow의 ledger로 사용하고, 모든 read/write는 `managed_workflow_id`로 스코프한다. 어드민 UI는 전역 issues 화면이 아니라 workflow-scoped `ManagedIssuesController` (`/workflows/:workflow_id/issues`)를 통해 CRUD를 제공한다. runtime wiring은 `WorkflowRuntimeFactory`가 `tracker.kind: database`인 workflow에 대해 `Trackers::Database.new(managed_workflow: ...)`를 구성한다.
 
----
-
-## Task 1: Trackers::Database 어댑터
-
-**Files:**
-- Create: `test/models/symphony/trackers/database_test.rb`
-- Create: `app/models/symphony/trackers/database.rb`
-
-**Ref:** `app/models/symphony/trackers/base.rb`, `app/models/symphony/trackers/memory.rb`, `test/models/symphony/trackers/memory_test.rb`
-
-### Step 1: 실패하는 테스트 작성
-
-- [ ] `test/models/symphony/trackers/database_test.rb` 생성
-- [ ] `PersistedIssue`로 테스트 데이터 세팅 (setup에서 3개 이슈 생성: Todo, In Progress, Done)
-- [ ] `fetch_candidate_issues(active_states:)` — active state 이슈만 반환, `{ ok: true, issues: [...] }` 형태
-- [ ] `fetch_issue_states_by_ids(ids)` — ID 목록으로 이슈 조회
-- [ ] `fetch_issues_by_states(states)` — state 목록으로 필터, 대소문자 무시
-- [ ] `fetch_issues_by_states([])` — 빈 배열이면 빈 결과
-- [ ] 반환되는 각 이슈가 `Symphony::Issue` 인스턴스인지 확인
-
-Run: `bin/rails test test/models/symphony/trackers/database_test.rb` → 실패 확인
-
-### Step 2: 어댑터 구현
-
-- [ ] `app/models/symphony/trackers/database.rb` 생성
-- [ ] `Symphony::Trackers::Database < Base` 클래스
-- [ ] `fetch_candidate_issues` — `PersistedIssue`에서 active_states로 case-insensitive 쿼리, 결과를 `Symphony::Issue`로 변환
-- [ ] `fetch_issue_states_by_ids` — `PersistedIssue.where(id: ids)` 쿼리, `Issue`로 변환
-- [ ] `fetch_issues_by_states` — states가 비어있으면 빈 결과, 아니면 state로 필터
-- [ ] private `to_issue(record)` 헬퍼 — `PersistedIssue` → `Symphony::Issue` 변환
-
-Run: `bin/rails test test/models/symphony/trackers/database_test.rb` → 통과 확인
-
-### Step 3: 커밋
-
-```
-feat: add Trackers::Database adapter querying PersistedIssue directly
-```
+**Tech Stack:** Rails 8, SQLite3, `Symphony::ManagedIssue`, `Symphony::ManagedWorkflow`, ERB views, workflow-scoped runtime factory
 
 ---
 
-## Task 2: ServiceConfig에 database tracker kind 지원 추가
+## Locked Decisions
+
+- `PersistedIssue`는 runtime persistence/cache 용도로 유지하고 database tracker ledger로 재사용하지 않는다.
+- database tracker ledger의 source of truth는 `Symphony::ManagedIssue`다.
+- ledger query와 mutation은 항상 `managed_workflow_id` 기준으로 제한한다.
+- database tracker write UI는 `tracker_connection.kind == "database"` workflow에서만 허용한다.
+- workflow detail 화면의 action 노출은 tracker kind 하드코딩보다 capability를 기준으로 한다.
+- `identifier` 자동 생성(`SYM-N`)은 이 plan의 범위에 두지 않는다. 현재는 admin UI 입력값을 저장한다.
+
+## Success Criteria
+
+- `Trackers::Database`가 `ManagedIssue`를 읽어 `Symphony::Issue` 목록을 반환한다.
+- database tracker workflow는 `create_issue`, `update_issue`, `transition_issue` capability를 가진다.
+- `WorkflowRuntimeFactory`가 database tracker workflow를 올바른 adapter로 조립한다.
+- `/workflows/:workflow_id/issues` CRUD가 database tracker workflow에서만 동작한다.
+- non-database workflow에서는 managed issue write path가 404로 차단된다.
+- 관련 테스트와 계획 문서가 현재 `ManagedIssue` 기반 구조와 충돌하지 않는다.
+
+## Out of Scope
+
+- 외부 tracker와의 양방향 동기화
+- identifier 자동 시퀀스 발급
+- workflow 범위를 넘는 전역 issues CRUD
+- webhook 기반 create/update trigger
+
+## Task 1: Database tracker adapter
 
 **Files:**
-- Modify: `test/models/symphony/service_config_test.rb`
-- Modify: `app/models/symphony/service_config.rb`
+- `app/models/symphony/trackers/database.rb`
+- `test/models/symphony/trackers/database_test.rb`
 
-**Ref:** `app/models/symphony/service_config.rb:L76` — `validate!` 메서드의 kind 검증 로직
+### Steps
 
-### Step 1: 실패하는 테스트 작성
+- [ ] `Trackers::Database`는 `managed_workflow:`를 받아 초기화한다
+- [ ] capability는 `read_issues`, `read_issue_states`, `refresh`, `create_issue`, `update_issue`, `transition_issue`
+- [ ] `fetch_candidate_issues(active_states:)`는 workflow-scoped `ManagedIssue`를 읽는다
+- [ ] `fetch_issue_states_by_ids(ids)`는 현재 workflow에 속한 ledger row만 반환한다
+- [ ] `fetch_issues_by_states(states)`는 상태를 case-insensitive로 필터한다
+- [ ] 각 결과는 `Symphony::Issue`로 정규화한다
 
-- [ ] `tracker.kind: "database"` 설정으로 `validate!`가 `:ok` 반환하는 테스트 추가
-- [ ] `tracker.kind: "database"`일 때 `api_key`, `project_slug` 불필요 확인
+Run: `bin/rails test test/models/symphony/trackers/database_test.rb`
+Expected: PASS
 
-Run: `bin/rails test test/models/symphony/service_config_test.rb` → 실패 확인
-
-### Step 2: validate! 수정
-
-- [ ] `service_config.rb:L76`의 조건에 `"database"` 추가: `tracker_kind != "linear" && tracker_kind != "memory" && tracker_kind != "database"`
-
-Run: `bin/rails test test/models/symphony/service_config_test.rb` → 통과 확인
-
-### Step 3: 커밋
-
-```
-feat: support tracker.kind "database" in ServiceConfig validation
-```
-
----
-
-## Task 3: identifier 자동 생성 로직 (SYM-N 시퀀스)
+## Task 2: Config and runtime wiring
 
 **Files:**
-- Modify: `test/models/symphony/persisted_issue_test.rb`
-- Modify: `app/models/symphony/persisted_issue.rb`
+- `app/models/symphony/service_config.rb`
+- `app/models/symphony/workflow_runtime_factory.rb`
+- `test/models/symphony/service_config_test.rb`
+- `test/models/symphony/workflow_runtime_factory_test.rb`
 
-### Step 1: 실패하는 테스트 작성
+### Steps
 
-- [ ] `PersistedIssue`를 identifier 없이 생성 시 `SYM-1` 자동 부여 테스트
-- [ ] 두 번째 이슈 생성 시 `SYM-2` 부여 테스트
-- [ ] 기존에 `SYM-5`가 있으면 다음은 `SYM-6` 테스트
-- [ ] identifier가 명시적으로 주어진 경우 (Linear 트래커 등) 덮어쓰지 않는 테스트
+- [ ] `ServiceConfig` validation이 `tracker.kind: database`를 허용한다
+- [ ] `WorkflowRuntimeFactory.build_tracker`가 `database` kind를 `Trackers::Database`로 연결한다
+- [ ] factory는 workflow record를 함께 넘겨 workflow-scoped ledger access를 보장한다
+- [ ] database tracker workflow snapshot이 다른 workflow ledger와 섞이지 않는지 검증한다
 
-Run: `bin/rails test test/models/symphony/persisted_issue_test.rb` → 실패 확인
+Run: `bin/rails test test/models/symphony/service_config_test.rb test/models/symphony/workflow_runtime_factory_test.rb`
+Expected: PASS
 
-### Step 2: before_validation 콜백 구현
-
-- [ ] `persisted_issue.rb`에 `before_validation :assign_identifier, on: :create` 추가
-- [ ] `assign_identifier` — `identifier`가 비어있을 때만 실행
-- [ ] 시퀀스 계산: `SYM-` 프리픽스를 가진 identifier 중 최대 숫자 + 1 (없으면 1)
-- [ ] `self.identifier = "SYM-#{next_number}"`
-
-Run: `bin/rails test test/models/symphony/persisted_issue_test.rb` → 통과 확인
-
-### Step 3: id 자동 생성도 추가
-
-- [ ] `id`가 string PK이므로 비어있을 때 `SecureRandom.uuid` 자동 부여 (before_validation)
-- [ ] 테스트 추가: id 없이 생성해도 UUID가 할당되는지 확인
-
-Run: `bin/rails test test/models/symphony/persisted_issue_test.rb` → 통과 확인
-
-### Step 4: 커밋
-
-```
-feat: auto-generate SYM-N identifier and UUID id for PersistedIssue
-```
-
----
-
-## Task 4: 웹 이슈 CRUD 컨트롤러 + 뷰
+## Task 3: Workflow-scoped managed issue CRUD
 
 **Files:**
-- Create: `test/controllers/symphony/issues_controller_test.rb`
-- Create: `app/controllers/symphony/issues_controller.rb`
-- Create: `app/views/symphony/issues/index.html.erb`
-- Create: `app/views/symphony/issues/new.html.erb`
-- Create: `app/views/symphony/issues/edit.html.erb`
-- Create: `app/views/symphony/issues/_form.html.erb`
-- Modify: `config/routes.rb`
+- `app/controllers/symphony/managed_issues_controller.rb`
+- `app/views/symphony/managed_issues/index.html.erb`
+- `app/views/symphony/managed_issues/new.html.erb`
+- `app/views/symphony/managed_issues/edit.html.erb`
+- `app/views/symphony/managed_issues/_form.html.erb`
+- `config/routes.rb`
+- `test/controllers/symphony/managed_issues_controller_test.rb`
 
-**Ref:** `app/controllers/symphony/dashboard_controller.rb`, `app/views/symphony/dashboard/show.html.erb` (기존 스타일 참고)
+### Steps
 
-### Step 1: 라우트 추가
+- [ ] routes는 `/workflows/:workflow_id/issues` 아래에만 노출한다
+- [ ] `index/new/create/edit/update/destroy`는 database tracker workflow에서만 허용한다
+- [ ] member lookup은 `@workflow.managed_issues.find(...)`로 제한한다
+- [ ] 다른 workflow issue를 잘못 수정/삭제하지 못하게 테스트로 고정한다
+- [ ] non-database workflow write path는 404로 차단한다
+- [ ] validation error와 malformed input은 `422`로 다시 렌더한다
 
-- [ ] `config/routes.rb`에 `resources :issues, controller: "symphony/issues"` 추가 (namespace 고려)
-- [ ] `show` 액션은 불필요 — `index`, `new`, `create`, `edit`, `update`, `destroy`만
+Run: `bin/rails test test/controllers/symphony/managed_issues_controller_test.rb`
+Expected: PASS
 
-### Step 2: 컨트롤러 테스트 작성
-
-- [ ] `GET /issues` — 이슈 목록 200 응답
-- [ ] `GET /issues/new` — 생성 폼 200 응답
-- [ ] `POST /issues` — 이슈 생성 후 리다이렉트, `PersistedIssue.count` 증가
-- [ ] `GET /issues/:id/edit` — 편집 폼 200 응답
-- [ ] `PATCH /issues/:id` — 이슈 업데이트 후 리다이렉트
-- [ ] `DELETE /issues/:id` — 이슈 삭제 후 리다이렉트
-
-Run: `bin/rails test test/controllers/symphony/issues_controller_test.rb` → 실패 확인
-
-### Step 3: 컨트롤러 구현
-
-- [ ] `Symphony::IssuesController < ApplicationController`
-- [ ] `index` — `@issues = PersistedIssue.order(created_at: :desc)`
-- [ ] `new` — `@issue = PersistedIssue.new(state: "Todo")`
-- [ ] `create` — strong params (`title`, `description`, `priority`, `state`), 성공 시 issues 목록으로 리다이렉트
-- [ ] `edit` — `@issue = PersistedIssue.find(params[:id])`
-- [ ] `update` — strong params, 성공 시 issues 목록으로 리다이렉트
-- [ ] `destroy` — 삭제 후 리다이렉트
-- [ ] private `issue_params` — `permit(:title, :description, :priority, :state)`
-
-### Step 4: 뷰 구현
-
-- [ ] `_form.html.erb` — title, description (textarea), priority (select 0-4), state (select: Todo/In Progress/Done/Closed/Cancelled)
-- [ ] `index.html.erb` — 테이블: identifier, title, state, priority, 생성일, 편집/삭제 링크. 상단에 "New Issue" 버튼
-- [ ] `new.html.erb` — form partial 렌더
-- [ ] `edit.html.erb` — form partial 렌더
-- [ ] 기존 대시보드 CSS 클래스 (`section-card`, `data-table`, `metric-card` 등) 재활용
-
-Run: `bin/rails test test/controllers/symphony/issues_controller_test.rb` → 통과 확인
-
-### Step 5: 커밋
-
-```
-feat: add web CRUD for issues (controller, views, routes)
-```
-
----
-
-## Task 5: 대시보드 연동
+## Task 4: Capability-based workflow UX
 
 **Files:**
-- Modify: `app/views/symphony/dashboard/show.html.erb`
-- Modify: `app/views/layouts/application.html.erb` (내비게이션에 Issues 링크)
+- `app/controllers/symphony/workflows_controller.rb`
+- `app/views/symphony/workflows/show.html.erb`
+- `test/controllers/symphony/workflows_controller_test.rb`
+- `test/models/symphony/trackers/base_test.rb`
+- `test/models/symphony/trackers/linear_test.rb`
 
-### Step 1: 대시보드에 이슈 관리 링크 추가
+### Steps
 
-- [ ] 대시보드 hero 영역 또는 nav에 "Manage Issues" 링크 추가 (issues 목록 경로)
-- [ ] DB 트래커 모드일 때만 표시하거나, 항상 표시 (PersistedIssue 기반이므로 항상 표시해도 무방)
+- [ ] base capability contract를 `read_issues`, `read_issue_states`, `refresh`로 고정한다
+- [ ] `Trackers::Linear`은 read-only capability만 반환한다
+- [ ] workflow detail은 capability list를 렌더한다
+- [ ] managed issue action link는 `create_issue` capability가 있을 때만 노출한다
+- [ ] read-only tracker workflow에서는 managed issue action이 숨겨진다
 
-### Step 2: 이슈 목록에 대시보드 복귀 링크
+Run: `bin/rails test test/controllers/symphony/workflows_controller_test.rb test/models/symphony/trackers/base_test.rb test/models/symphony/trackers/linear_test.rb`
+Expected: PASS
 
-- [ ] issues index 상단에 "Back to Dashboard" 링크
-
-### Step 3: 커밋
-
-```
-feat: link dashboard and issues management pages
-```
-
----
-
-## Task 6: 전체 통합 테스트
+## Task 5: Verification and docs sync
 
 **Files:**
-- Create: `test/integration/symphony/database_tracker_integration_test.rb`
+- `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`
+- `docs/plans/2026-03-19-multi-project-admin-console-design.md`
+- `docs/plans/2026-03-13-tracker-database.md`
 
-### Step 1: 통합 테스트 작성
+### Steps
 
-- [ ] 웹 UI로 이슈 생성 → `Trackers::Database`로 `fetch_candidate_issues` 호출 → 생성한 이슈 반환 확인
-- [ ] 웹 UI로 이슈 상태 변경 → `fetch_issues_by_states`로 변경된 상태 확인
-- [ ] identifier 자동 생성 확인 — 웹 UI로 2개 생성 시 `SYM-1`, `SYM-2` 순서
-- [ ] `ServiceConfig.new({"tracker" => {"kind" => "database"}, "codex" => {"command" => "codex"}}).validate!` → `:ok`
+- [ ] database tracker 문서가 `ManagedIssue` 기반 구현과 충돌하지 않는지 확인한다
+- [ ] multi-project console plan의 Task 10 범위와 terminology를 맞춘다
+- [ ] verification은 managed issue CRUD, workflow show, tracker tests를 묶어 실행한다
 
-Run: `bin/rails test test/integration/symphony/database_tracker_integration_test.rb` → 통과 확인
-
-### Step 2: 전체 테스트 스위트 실행
-
-Run: `bin/rails test` → 기존 테스트 포함 전체 통과 확인
-
-### Step 3: 커밋
-
-```
-test: add integration tests for database tracker end-to-end flow
-```
+Run: `bin/rails test test/models/symphony/trackers/database_test.rb test/controllers/symphony/managed_issues_controller_test.rb test/controllers/symphony/workflows_controller_test.rb`
+Expected: PASS
