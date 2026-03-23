@@ -7,6 +7,11 @@
 
 ## 1. 부트 시퀀스
 
+현재는 두 개의 runtime entry path가 있다.
+
+- legacy file mode: `bin/symphony` → `Symphony.boot!`
+- managed DB mode: Rails app/controller/job → `WorkflowRuntimeManager.fetch(workflow_id)`
+
 `bin/symphony` → `Symphony.boot!` 호출로 시작된다.
 
 ```mermaid
@@ -46,6 +51,30 @@ sequenceDiagram
 9. **폴 루프 진입** — CLI 모드에서만 blocking loop
 
 ref: `app/models/symphony.rb`
+
+### Managed DB mode runtime path
+
+managed DB mode에서는 전역 singleton 대신 workflow-scoped runtime path를 사용한다.
+
+```mermaid
+sequenceDiagram
+    participant Web as Dashboard/API/Job
+    participant WRM as WorkflowRuntimeManager
+    participant WRF as WorkflowRuntimeFactory
+    participant MWS as ManagedWorkflowStore
+    participant OR as Orchestrator
+
+    Web->>WRM: fetch(workflow_id)
+    WRM->>WRF: build(workflow_id) on cache miss
+    WRF->>MWS: new(managed_workflow_id)
+    WRF->>WRF: build tracker/workspace/agent
+    WRF->>OR: new(..., managed_workflow_id:)
+    WRM-->>Web: RuntimeContext
+```
+
+- dashboard와 workflow detail은 snapshot read를 위해 runtime manager를 사용한다
+- managed poll path는 recurring `PollJob` → `WorkflowPollJob.perform_later(workflow_id:)` → workflow-scoped orchestrator tick 흐름을 탄다
+- runtime persistence는 `managed_workflow_id` 기준으로 복원/조회된다
 
 ---
 

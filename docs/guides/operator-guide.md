@@ -7,6 +7,11 @@ Symphony를 설정하고 실행하는 방법을 다룬다.
 
 ## 1. 빠른 시작
 
+현재는 두 가지 운영 모드를 지원한다.
+
+- legacy file mode: `WORKFLOW.md`를 직접 읽어 `bin/symphony`로 기동
+- managed DB mode: Rails admin console에서 project/workflow를 관리하고 workflow-scoped runtime을 on-demand로 조립
+
 ### 사전 요구사항
 
 - Ruby 3.2+, Rails 8
@@ -20,7 +25,7 @@ Symphony를 설정하고 실행하는 방법을 다룬다.
 bin/setup --skip-server
 ```
 
-### 최소 WORKFLOW.md
+### 최소 WORKFLOW.md (legacy file mode)
 
 대상 저장소 루트에 `WORKFLOW.md`를 생성한다.
 
@@ -42,6 +47,8 @@ agent:
 
 ### 실행
 
+#### Legacy file mode
+
 ```bash
 bin/symphony                          # 현재 디렉토리의 WORKFLOW.md 사용
 bin/symphony /path/to/WORKFLOW.md     # 경로 지정
@@ -50,6 +57,26 @@ bin/symphony --logs-root /var/log/sym # 로그 디렉토리 지정
 ```
 
 실행하면 오케스트레이터가 기동되고, 설정된 주기(`polling.interval_ms`)마다 트래커를 폴링하여 이슈를 디스패치한다.
+
+#### Managed DB mode
+
+```bash
+bin/rails server
+bin/jobs
+```
+
+- root dashboard (`/`)가 admin console entrypoint다
+- workflow runtime은 `WorkflowRuntimeManager`가 workflow 단위로 조립한다
+- recurring `PollJob`가 active managed workflow마다 `WorkflowPollJob`를 fanout enqueue한다
+
+#### Legacy `WORKFLOW.md` import
+
+```bash
+bin/rails "symphony:import_workflow[/absolute/path/to/WORKFLOW.md,Project Name,Workflow Name]"
+```
+
+- 이름 인자를 생략하면 `WORKFLOW.md`가 있는 디렉토리명으로 project/workflow 이름과 slug를 만든다
+- credential은 해석된 평문 대신 `"$ENV_VAR"` reference 문자열을 그대로 저장한다
 
 ---
 
