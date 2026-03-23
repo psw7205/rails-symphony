@@ -5,6 +5,7 @@
 Rails Symphony를 단일 workflow runtime 대시보드에서, 여러 project/workflow를 한곳에서 관리하는 멀티-프로젝트 어드민 콘솔로 확장한다.
 
 상세 실행 계획은 `docs/plans/2026-03-19-multi-project-admin-console-implementation.md`를 따른다.
+database tracker 세부 계획은 `docs/plans/2026-03-13-tracker-database.md`를 따른다.
 
 핵심 방향은 다음과 같다.
 
@@ -12,6 +13,25 @@ Rails Symphony를 단일 workflow runtime 대시보드에서, 여러 project/wor
 - tracker는 `linear`, `github`, `database` 등 다양한 어댑터로 유지한다.
 - 어드민 콘솔은 공통 운영 화면을 제공하되, tracker별 capability에 따라 가능한 작업만 노출한다.
 - 실행 중 runtime 상태와 tracker 원본 데이터는 분리해서 관리한다.
+
+## Current Implementation Notes
+
+현재 landed 방향은 다음과 같다.
+
+- 관리용 엔티티는 `ManagedProject`, `ManagedWorkflow`, `TrackerConnection`, `AgentConnection`, `ManagedIssue` naming을 유지한다.
+- `database` tracker ledger는 `PersistedIssue`가 아니라 `ManagedIssue`를 source of truth로 사용한다.
+- runtime persistence와 runtime reconstruction은 `managed_workflow_id` 기준으로 스코프한다.
+- legacy file mode는 `Symphony.boot!`로 유지하고, managed DB mode는 workflow-scoped runtime factory/manager를 경유한다.
+
+## Cutover Path
+
+기존 `WORKFLOW.md` 기반 운영에서 DB-managed mode로 옮길 때는 다음 절차를 기준으로 한다.
+
+1. `bin/rails "symphony:import_workflow[/path/to/WORKFLOW.md,...]"`로 project/workflow/connection record를 1회 import한다.
+2. imported workflow를 admin console에서 검토하고 tracker/agent/runtime 설정을 조정한다.
+3. legacy file mode와 managed DB mode를 병행 검증한 뒤 운영 경로를 전환한다.
+
+이 문서의 cutover 세부 구현과 검증 항목은 implementation plan의 Task 12/13을 source of truth로 둔다.
 
 ## Assumptions
 

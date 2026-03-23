@@ -13,7 +13,7 @@
 | Framework | Rails 8 + SQLite |
 | Background Job | Solid Queue |
 | Agent | 어댑터 패턴 — Codex (1차), Claude Code (2차) |
-| Tracker | 어댑터 패턴 — Linear (1차), GitHub Issues (2차) |
+| Tracker | 어댑터 패턴 — Linear, Database (현재), GitHub Issues (후속) |
 | Template | Liquid (strict mode) |
 
 ## 아키텍처
@@ -21,11 +21,11 @@
 SPEC의 6개 계층을 Rails 컨벤션에 매핑합니다.
 
 ```
-Policy Layer        → WORKFLOW.md (repo-owned)
-Configuration Layer → Workflow, ServiceConfig 모델
-Coordination Layer  → PollJob, Orchestrator
+Policy Layer        → WORKFLOW.md 또는 DB-managed prompt template
+Configuration Layer → Workflow/WorkflowStore, ManagedWorkflow/ManagedWorkflowStore, ServiceConfig
+Coordination Layer  → PollJob, WorkflowPollJob, Orchestrator, WorkflowRuntimeManager
 Execution Layer     → AgentWorkerJob, Workspace
-Integration Layer   → Trackers::Linear
+Integration Layer   → Trackers::Linear, Trackers::Database
 Observability Layer → Rails.logger + structured tags
 ```
 
@@ -43,6 +43,11 @@ AgentWorkerJob
   → Agent 세션 시작 (JSON-RPC stdio)
   → Turn loop (prompt → 실행 → 이벤트 → 상태 확인)
   → 결과 보고 → 재시도 또는 완료
+
+Managed Admin Console
+  → ManagedProject / ManagedWorkflow / connection CRUD
+  → WorkflowRuntimeManager.fetch(workflow_id)
+  → workflow-scoped snapshot / refresh / issues UI
 ```
 
 ### 어댑터 인터페이스
@@ -57,9 +62,14 @@ AgentWorkerJob
 bin/setup --skip-server   # 의존성 설치 + DB 준비
 ```
 
-`bin/symphony` 실행 전, 대상 저장소(또는 현재 디렉토리)에 `WORKFLOW.md`가 있어야 합니다.
+현재는 두 가지 운영 모드를 지원합니다.
+
+- legacy file mode: `WORKFLOW.md`를 직접 읽어 `bin/symphony`로 기동
+- managed DB mode: Rails 앱의 admin console에서 project/workflow를 관리하고 workflow-scoped runtime을 on-demand로 구성
 
 ## 실행
+
+### Legacy File Mode
 
 ```bash
 bin/symphony [WORKFLOW.md 경로] [--logs-root DIR] [--port PORT]
@@ -68,6 +78,29 @@ bin/symphony [WORKFLOW.md 경로] [--logs-root DIR] [--port PORT]
 - `WORKFLOW.md` 경로 생략 시 현재 디렉토리의 `WORKFLOW.md`를 자동 탐색
 - `--port` 미지정 시 `WORKFLOW.md`의 `server.port`를 사용하고, 둘 다 없으면 Rails 기본 포트를 사용
 - `Symphony.boot!`가 호출되어 오케스트레이터/파일 감시/폴링 루프를 함께 기동
+
+### Managed DB Mode
+
+```bash
+bin/rails server
+bin/jobs
+```
+
+- root dashboard (`/`)가 멀티 프로젝트 admin console entrypoint다
+- runtime은 `WorkflowRuntimeManager`가 workflow 단위로 조립/캐시한다
+- background poll/dispatch는 Rails app + Solid Queue worker(`bin/jobs`) 조합을 전제로 한다
+
+### Legacy `WORKFLOW.md` Import
+
+기존 file mode 설정을 DB-managed mode로 옮길 때는 import task를 사용한다.
+
+```bash
+bin/rails "symphony:import_workflow[/absolute/path/to/WORKFLOW.md,Project Name,Workflow Name]"
+```
+
+- `project_name`, `workflow_name`은 선택 사항이다
+- 생략하면 `WORKFLOW.md`가 들어 있는 디렉토리명을 기반으로 이름/slug를 만든다
+- tracker credential은 해석된 평문 값이 아니라 `"$ENV_VAR"` reference 문자열 그대로 저장한다
 
 ## WORKFLOW.md 구조
 
@@ -107,11 +140,14 @@ bin/rails test
 - GitHub Issues 어댑터
 - HTTP JSON API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/:issue_identifier`)
 - Turbo 대시보드 루트 페이지 (`/`)
+- 멀티 프로젝트 admin console (`ManagedProject`, `ManagedWorkflow`, DB-backed connections/issues)
 
 ## 참고
 
 - [운영 가이드](docs/guides/operator-guide.md) — 설정, 실행, 모니터링, 트러블슈팅
 - [기능 동작 레퍼런스](docs/guides/feature-reference.md) — 내부 동작 흐름, 상태 머신, 어댑터 확장
+- [멀티 프로젝트 어드민 콘솔 설계](docs/plans/2026-03-19-multi-project-admin-console-design.md)
+- [멀티 프로젝트 어드민 콘솔 구현 계획](docs/plans/2026-03-19-multi-project-admin-console-implementation.md)
 - [OpenAI Symphony](https://github.com/openai/symphony) — 원본 프로젝트
 - [Symphony SPEC](https://github.com/openai/symphony/blob/main/SPEC.md)
 - [설계 문서](docs/plans/2026-03-05-symphony-rails-design.md)
