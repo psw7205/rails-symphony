@@ -132,6 +132,27 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Identifier can&#39;t be blank"
   end
 
+  test "PATCH /workflows/:workflow_id/issues/:id returns 404 for issues outside the workflow" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-scoped-update-workflow", name: "Managed Issues Scoped Update Workflow")
+    other_workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-scoped-update-other-workflow", name: "Managed Issues Scoped Update Other Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: other_workflow,
+      identifier: "MI-SCOPED-UPDATE-1",
+      title: "Scoped managed issue",
+      state: "Todo"
+    )
+
+    patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
+      managed_issue: {
+        identifier: "MI-SCOPED-UPDATE-1",
+        title: "Updated from wrong workflow"
+      }
+    }
+
+    assert_response :not_found
+    assert_equal "Scoped managed issue", issue.reload.title
+  end
+
   test "DELETE /workflows/:workflow_id/issues/:id destroys a managed issue" do
     workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-destroy-workflow", name: "Managed Issues Destroy Workflow")
     issue = Symphony::ManagedIssue.create!(
@@ -145,6 +166,22 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to "/workflows/#{workflow.id}/issues"
     assert_nil Symphony::ManagedIssue.find_by(id: issue.id)
+  end
+
+  test "DELETE /workflows/:workflow_id/issues/:id returns 404 for issues outside the workflow" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-scoped-destroy-workflow", name: "Managed Issues Scoped Destroy Workflow")
+    other_workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-scoped-destroy-other-workflow", name: "Managed Issues Scoped Destroy Other Workflow")
+    issue = Symphony::ManagedIssue.create!(
+      managed_workflow: other_workflow,
+      identifier: "MI-SCOPED-DELETE-1",
+      title: "Scoped managed issue",
+      state: "Todo"
+    )
+
+    delete "/workflows/#{workflow.id}/issues/#{issue.id}"
+
+    assert_response :not_found
+    assert_equal issue.id, issue.reload.id
   end
 
   private

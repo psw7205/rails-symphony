@@ -30,14 +30,14 @@ module Symphony
       @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
       return head :not_found unless @workflow.tracker_connection.kind == "database"
 
-      @managed_issue = ManagedIssue.find(params[:id])
+      @managed_issue = @workflow.managed_issues.find(params[:id])
     end
 
     def update
       @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
       return head :not_found unless @workflow.tracker_connection.kind == "database"
 
-      @managed_issue = ManagedIssue.find(params[:id])
+      @managed_issue = @workflow.managed_issues.find(params[:id])
       if @managed_issue.update(managed_issue_params)
         redirect_to "/workflows/#{@workflow.id}/issues"
       else
@@ -49,7 +49,7 @@ module Symphony
       @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
       return head :not_found unless @workflow.tracker_connection.kind == "database"
 
-      @managed_issue = ManagedIssue.find(params[:id])
+      @managed_issue = @workflow.managed_issues.find(params[:id])
       @managed_issue.destroy!
       redirect_to "/workflows/#{@workflow.id}/issues"
     end
