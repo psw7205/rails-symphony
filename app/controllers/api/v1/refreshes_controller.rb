@@ -13,8 +13,17 @@ module Api
       end
 
       def create_workflow
+        workflow = Symphony::ManagedWorkflow.find_by(id: params[:workflow_id])
+        unless workflow
+          return render json: { error: { code: "workflow_not_found", message: "Workflow not found" } }, status: 404
+        end
+
+        if workflow.status != "active"
+          return render json: { error: { code: "workflow_inactive", message: "Workflow is inactive" } }, status: 409
+        end
+
         result = Symphony::WorkflowTriggerScheduler.enqueue(
-          workflow_id: params[:workflow_id],
+          workflow_id: workflow.id,
           source: "manual_refresh"
         )
         render json: result, status: 202

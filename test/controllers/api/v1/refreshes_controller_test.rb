@@ -70,8 +70,32 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
     assert_equal trigger_event.id, job[:args].first["trigger_event_id"]
   end
 
+  test "POST /api/v1/workflows/:workflow_id/refresh rejects inactive workflows" do
+    workflow = build_managed_workflow(status: "inactive")
+
+    assert_no_difference("Symphony::WorkflowTriggerEvent.count") do
+      post "/api/v1/workflows/#{workflow.id}/refresh"
+    end
+
+    assert_response :conflict
+    assert_equal 0, enqueued_jobs.size
+    body = JSON.parse(response.body)
+    assert_equal "workflow_inactive", body.dig("error", "code")
+  end
+
+  test "POST /api/v1/workflows/:workflow_id/refresh returns 404 for unknown workflows" do
+    assert_no_difference("Symphony::WorkflowTriggerEvent.count") do
+      post "/api/v1/workflows/999999/refresh"
+    end
+
+    assert_response :not_found
+    assert_equal 0, enqueued_jobs.size
+    body = JSON.parse(response.body)
+    assert_equal "workflow_not_found", body.dig("error", "code")
+  end
+
   private
-    def build_managed_workflow
+    def build_managed_workflow(status: "active")
       project = Symphony::ManagedProject.create!(name: "API Refresh Project", slug: "api-refresh-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
         name: "API Refresh Memory",
@@ -92,7 +116,7 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
         agent_connection: agent_connection,
         name: "API Refresh Workflow",
         slug: "api-refresh-workflow",
-        status: "active",
+        status: status,
         prompt_template: "Refresh prompt",
         runtime_config: { workspace: { root: "api-refresh-workspaces" } }
       )
