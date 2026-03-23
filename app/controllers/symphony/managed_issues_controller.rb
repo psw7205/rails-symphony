@@ -2,9 +2,17 @@ module Symphony
   class ManagedIssuesController < ApplicationController
     def index
       @workflow = ManagedWorkflow.includes(:tracker_connection).find(params[:workflow_id])
-      return head :not_found unless @workflow.tracker_connection.kind == "database"
+      context = WorkflowRuntimeManager.fetch(@workflow.id)
+      @editable = context.tracker.capabilities.include?(:create_issue)
 
-      @managed_issues = ManagedIssue.where(managed_workflow_id: @workflow.id).order(:id)
+      @issues = if @editable
+        ManagedIssue.where(managed_workflow_id: @workflow.id).order(:id)
+      else
+        result = context.tracker.fetch_candidate_issues(active_states: context.workflow_store.service_config.active_states)
+        return head :bad_gateway unless result[:ok]
+
+        result[:issues]
+      end
     end
 
     def new

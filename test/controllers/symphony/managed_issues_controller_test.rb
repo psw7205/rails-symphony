@@ -3,9 +3,11 @@ require "test_helper"
 class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
   setup do
     reset_console_records!
+    Symphony::WorkflowRuntimeManager.clear!
   end
 
   teardown do
+    Symphony::WorkflowRuntimeManager.clear!
     reset_console_records!
   end
 
@@ -41,11 +43,27 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "/workflows/#{workflow.id}/issues/#{issue.id}"
   end
 
-  test "GET /workflows/:workflow_id/issues returns 404 for non-database workflows" do
+  test "GET /workflows/:workflow_id/issues renders a read-only issue screen for non-database workflows" do
     workflow = build_managed_workflow(tracker_kind: "memory", slug: "non-database-workflow", name: "Non Database Workflow")
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.tracker.add_issue(
+      Symphony::Issue.new(
+        id: "memory-read-only-1",
+        identifier: "RO-1",
+        title: "Read only issue",
+        state: "In Progress",
+        priority: 1,
+        created_at: Time.current
+      )
+    )
 
     get "/workflows/#{workflow.id}/issues"
-    assert_response :not_found
+
+    assert_response :success
+    assert_includes response.body, "RO-1"
+    assert_includes response.body, "Read only issue"
+    refute_includes response.body, "/workflows/#{workflow.id}/issues/new"
+    refute_includes response.body, "Delete"
   end
 
   test "GET /workflows/:workflow_id/issues/new renders the managed issue form" do

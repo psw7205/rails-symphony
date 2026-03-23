@@ -23,17 +23,18 @@ module Symphony
     private
       def tracker_config
         section = stringify_hash(@managed_workflow.tracker_connection.config)
+        section ||= {}
         section = section["tracker"] if section.key?("tracker")
 
         { "tracker" => section || {} }
       end
 
       def agent_config
-        stringify_hash(@managed_workflow.agent_connection.config)
+        stringify_hash(@managed_workflow.agent_connection.config) || {}
       end
 
       def runtime_config
-        stringify_hash(@managed_workflow.runtime_config)
+        stringify_hash(@managed_workflow.runtime_config) || {}
       end
 
       def stringify_hash(value)
