@@ -44,6 +44,22 @@ class Symphony::TrackerConnectionsControllerTest < ActionDispatch::IntegrationTe
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "POST /tracker_connections renders an error for malformed config JSON" do
+    assert_no_difference("Symphony::TrackerConnection.count") do
+      post "/tracker_connections", params: {
+        tracker_connection: {
+          name: "Broken Tracker Connection",
+          kind: "linear",
+          status: "active",
+          config_json: "{\"project_slug\":"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Config json is invalid JSON"
+  end
+
   test "GET /tracker_connections/:id/edit renders the tracker connection form" do
     tracker_connection = Symphony::TrackerConnection.create!(
       name: "Editable Linear Connection",

@@ -25,7 +25,7 @@
 
     <div>
       <%= form.label :config_json, "Config (JSON)" %>
-      <%= form.text_area :config_json, value: tracker_connection.config.present? ? tracker_connection.config.to_json : "" %>
+      <%= form.text_area :config_json, value: tracker_connection.config_json.presence || (tracker_connection.config.present? ? tracker_connection.config.to_json : "") %>
     </div>
 
     <%= form.submit submit_label %>

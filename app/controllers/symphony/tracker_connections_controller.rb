@@ -6,9 +6,9 @@ module Symphony
 
     def create
       @tracker_connection = TrackerConnection.new(tracker_connection_params)
-      @tracker_connection.config = parsed_config
+      @tracker_connection.config_json = raw_config_json
 
-      if @tracker_connection.save
+      if assign_parsed_config(@tracker_connection) && @tracker_connection.save
         redirect_to "/projects"
       else
         render :new, status: :unprocessable_entity
@@ -22,9 +22,9 @@ module Symphony
     def update
       @tracker_connection = TrackerConnection.find(params[:id])
       @tracker_connection.assign_attributes(tracker_connection_params)
-      @tracker_connection.config = parsed_config
+      @tracker_connection.config_json = raw_config_json
 
-      if @tracker_connection.save
+      if assign_parsed_config(@tracker_connection) && @tracker_connection.save
         redirect_to "/projects"
       else
         render :edit, status: :unprocessable_entity
@@ -42,13 +42,18 @@ module Symphony
         params.require(:tracker_connection).permit(:name, :kind, :status)
       end
 
-      def parsed_config
-        raw = params.dig(:tracker_connection, :config_json)
-        return {} if raw.blank?
+      def raw_config_json
+        params.dig(:tracker_connection, :config_json).to_s
+      end
 
-        JSON.parse(raw)
+      def assign_parsed_config(tracker_connection)
+        return tracker_connection.config = {} if raw_config_json.blank?
+
+        tracker_connection.config = JSON.parse(raw_config_json)
+        true
       rescue JSON::ParserError
-        {}
+        tracker_connection.errors.add(:config_json, "is invalid JSON")
+        false
       end
   end
 end
