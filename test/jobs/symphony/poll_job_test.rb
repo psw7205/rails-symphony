@@ -69,6 +69,18 @@ class Symphony::PollJobTest < ActiveJob::TestCase
     assert_equal 1, tick_count
   end
 
+  test "perform still schedules managed workflows when the legacy orchestrator tick fails" do
+    workflow = build_managed_workflow(slug: "poll-legacy-failure-workflow", name: "Poll Legacy Failure Workflow", status: "active")
+    Symphony.orchestrator = Object.new.tap do |orchestrator|
+      orchestrator.define_singleton_method(:tick) { raise "legacy_tick_failed" }
+    end
+
+    Symphony::PollJob.perform_now
+
+    poll_jobs = enqueued_jobs.select { |job| job[:job] == Symphony::WorkflowPollJob }
+    assert_equal [ workflow.id ], poll_jobs.map { |job| job[:args].first["workflow_id"] }
+  end
+
   private
     def build_managed_workflow(slug:, name:, status:)
       project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")

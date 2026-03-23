@@ -4,6 +4,9 @@ module Symphony
 
     def perform
       Symphony.orchestrator&.tick
+    rescue => error
+      Rails.logger.error("[PollJob] Legacy orchestrator tick failed: #{error.message}")
+    ensure
       Symphony::ManagedWorkflow.where(status: "active").pluck(:id).each do |workflow_id|
         Symphony::WorkflowTriggerScheduler.enqueue(workflow_id: workflow_id, source: "poll")
       rescue => error
