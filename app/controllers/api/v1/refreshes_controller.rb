@@ -13,7 +13,10 @@ module Api
       end
 
       def create_workflow
-        result = Symphony::WorkflowRuntimeManager.fetch(params[:workflow_id]).orchestrator.request_refresh
+        result = Symphony::WorkflowTriggerScheduler.enqueue(
+          workflow_id: params[:workflow_id],
+          source: "manual_refresh"
+        )
         render json: result, status: 202
       end
     end

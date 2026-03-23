@@ -1,12 +1,16 @@
 require "test_helper"
 
 class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   setup do
+    clear_enqueued_jobs
     reset_console_records!
     Symphony::WorkflowRuntimeManager.clear!
   end
 
   teardown do
+    clear_enqueued_jobs
     Symphony::WorkflowRuntimeManager.clear!
     reset_console_records!
   end
@@ -77,20 +81,29 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
   test "POST /workflows/:workflow_id/issues creates a managed issue" do
     workflow = build_managed_workflow(tracker_kind: "database", slug: "managed-issues-create-workflow", name: "Managed Issues Create Workflow")
 
-    post "/workflows/#{workflow.id}/issues", params: {
-      managed_issue: {
-        identifier: "MI-2",
-        title: "Created managed issue",
-        description: "Created from controller test",
-        priority: "1",
-        state: "Todo"
+    assert_enqueued_with(job: Symphony::WorkflowPollJob) do
+      post "/workflows/#{workflow.id}/issues", params: {
+        managed_issue: {
+          identifier: "MI-2",
+          title: "Created managed issue",
+          description: "Created from controller test",
+          priority: "1",
+          state: "Todo"
+        }
       }
-    }
+    end
 
     issue = Symphony::ManagedIssue.order(:id).last
+    trigger_event = Symphony::WorkflowTriggerEvent.order(:id).last
+    job = enqueued_jobs.last
     assert_redirected_to "/workflows/#{workflow.id}/issues"
     assert_equal "MI-2", issue.identifier
     assert_equal workflow.id, issue.managed_workflow_id
+    assert_equal workflow.id, trigger_event.managed_workflow_id
+    assert_equal "database_write", trigger_event.source
+    assert_equal "enqueued", trigger_event.status
+    assert_equal workflow.id, job[:args].first["workflow_id"]
+    assert_equal trigger_event.id, job[:args].first["trigger_event_id"]
   end
 
   test "POST /workflows/:workflow_id/issues renders validation errors" do
@@ -147,20 +160,29 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
       state: "Todo"
     )
 
-    patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
-      managed_issue: {
-        identifier: "MI-UPDATE-1",
-        title: "Updated managed issue",
-        description: "Updated from controller test",
-        priority: "2",
-        state: "In Progress"
+    assert_enqueued_with(job: Symphony::WorkflowPollJob) do
+      patch "/workflows/#{workflow.id}/issues/#{issue.id}", params: {
+        managed_issue: {
+          identifier: "MI-UPDATE-1",
+          title: "Updated managed issue",
+          description: "Updated from controller test",
+          priority: "2",
+          state: "In Progress"
+        }
       }
-    }
+    end
 
+    trigger_event = Symphony::WorkflowTriggerEvent.order(:id).last
+    job = enqueued_jobs.last
     assert_redirected_to "/workflows/#{workflow.id}/issues"
     issue.reload
     assert_equal "Updated managed issue", issue.title
     assert_equal "In Progress", issue.state
+    assert_equal workflow.id, trigger_event.managed_workflow_id
+    assert_equal "database_write", trigger_event.source
+    assert_equal "enqueued", trigger_event.status
+    assert_equal workflow.id, job[:args].first["workflow_id"]
+    assert_equal trigger_event.id, job[:args].first["trigger_event_id"]
   end
 
   test "PATCH /workflows/:workflow_id/issues/:id renders validation errors" do
@@ -234,10 +256,19 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
       state: "Todo"
     )
 
-    delete "/workflows/#{workflow.id}/issues/#{issue.id}"
+    assert_enqueued_with(job: Symphony::WorkflowPollJob) do
+      delete "/workflows/#{workflow.id}/issues/#{issue.id}"
+    end
 
+    trigger_event = Symphony::WorkflowTriggerEvent.order(:id).last
+    job = enqueued_jobs.last
     assert_redirected_to "/workflows/#{workflow.id}/issues"
     assert_nil Symphony::ManagedIssue.find_by(id: issue.id)
+    assert_equal workflow.id, trigger_event.managed_workflow_id
+    assert_equal "database_write", trigger_event.source
+    assert_equal "enqueued", trigger_event.status
+    assert_equal workflow.id, job[:args].first["workflow_id"]
+    assert_equal trigger_event.id, job[:args].first["trigger_event_id"]
   end
 
   test "DELETE /workflows/:workflow_id/issues/:id returns 404 for issues outside the workflow" do
@@ -279,6 +310,7 @@ class Symphony::ManagedIssuesControllerTest < ActionDispatch::IntegrationTest
       Symphony::RetryEntry.delete_all
       Symphony::PersistedIssue.delete_all
       Symphony::OrchestratorState.delete_all
+      Symphony::WorkflowTriggerEvent.delete_all
       Symphony::ManagedIssue.delete_all
       Symphony::ManagedWorkflow.delete_all
       Symphony::AgentConnection.delete_all

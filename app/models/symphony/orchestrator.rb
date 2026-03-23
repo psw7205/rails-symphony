@@ -30,18 +30,22 @@ module Symphony
         @workflow_store.reload_if_changed!
         apply_runtime_config
         reconcile_running_issues
-        return unless validate_dispatch_config
+        return failure_result("dispatch_config_invalid") unless validate_dispatch_config
 
         result = @tracker.fetch_candidate_issues(active_states: config.active_states)
         unless result[:ok]
           Rails.logger.error("[Orchestrator] Failed to fetch candidates: #{result.inspect}")
-          return
+          return failure_result("candidate_fetch_failed")
         end
 
         candidates = sort_for_dispatch(result[:issues])
         dispatch_eligible(candidates)
+        success_result
       end
     end
+    rescue => error
+      Rails.logger.error("[Orchestrator] Tick failed: #{error.class}: #{error.message}")
+      failure_result(error.message)
 
     # Called when a worker exits normally
     def on_worker_exit_normal(issue_id, issue_identifier)
@@ -406,6 +410,14 @@ module Symphony
         Process.kill("TERM", pid)
       rescue Errno::ESRCH, Errno::EPERM, TypeError
         nil
+      end
+
+      def success_result
+        { ok: true }
+      end
+
+      def failure_result(error)
+        { ok: false, error: error.to_s }
       end
   end
 end

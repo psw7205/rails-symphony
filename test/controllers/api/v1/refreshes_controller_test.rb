@@ -2,7 +2,10 @@ require "test_helper"
 require "tmpdir"
 
 class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   setup do
+    clear_enqueued_jobs
     Symphony::WorkflowRuntimeManager.clear!
     @root = Dir.mktmpdir("api_refresh_test")
     workflow_file = File.join(@root, "WORKFLOW.md")
@@ -20,6 +23,7 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
+    clear_enqueued_jobs
     Symphony::WorkflowRuntimeManager.clear!
     Symphony.orchestrator = nil
     FileUtils.rm_rf(@root)
@@ -41,16 +45,29 @@ class Api::V1::RefreshesControllerTest < ActionDispatch::IntegrationTest
     assert_response 503
   end
 
-  test "POST /api/v1/workflows/:workflow_id/refresh triggers the workflow refresh" do
+  test "POST /api/v1/workflows/:workflow_id/refresh enqueues an async workflow refresh" do
     workflow = build_managed_workflow
+    context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)
+    context.orchestrator.define_singleton_method(:tick) do
+      raise "workflow refresh should not tick in the request thread"
+    end
 
-    post "/api/v1/workflows/#{workflow.id}/refresh"
+    assert_enqueued_with(job: Symphony::WorkflowPollJob) do
+      post "/api/v1/workflows/#{workflow.id}/refresh"
+    end
     assert_response 202
 
     body = JSON.parse(response.body)
+    job = enqueued_jobs.last
     assert body["queued"]
-    assert_includes body["operations"], "poll"
-    assert_includes body["operations"], "reconcile"
+    assert_equal "manual_refresh", body["source"]
+    assert body["trigger_event_id"].present?
+    trigger_event = Symphony::WorkflowTriggerEvent.find(body["trigger_event_id"])
+    assert_equal workflow.id, trigger_event.managed_workflow_id
+    assert_equal "manual_refresh", trigger_event.source
+    assert_equal "enqueued", trigger_event.status
+    assert_equal workflow.id, job[:args].first["workflow_id"]
+    assert_equal trigger_event.id, job[:args].first["trigger_event_id"]
   end
 
   private

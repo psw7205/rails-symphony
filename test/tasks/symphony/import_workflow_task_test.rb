@@ -109,6 +109,7 @@ class Symphony::ImportWorkflowTaskTest < ActiveSupport::TestCase
       Symphony::RetryEntry.delete_all
       Symphony::PersistedIssue.delete_all
       Symphony::OrchestratorState.delete_all
+      Symphony::WorkflowTriggerEvent.delete_all
       Symphony::ManagedIssue.delete_all
       Symphony::ManagedWorkflow.delete_all
       Symphony::AgentConnection.delete_all

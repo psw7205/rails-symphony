@@ -28,6 +28,7 @@ module Symphony
 
       @managed_issue = ManagedIssue.new(managed_issue_params.merge(managed_workflow: @workflow))
       if @managed_issue.save
+        enqueue_database_write_refresh!(@workflow)
         redirect_to "/workflows/#{@workflow.id}/issues"
       else
         render :new, status: :unprocessable_entity
@@ -47,6 +48,7 @@ module Symphony
 
       @managed_issue = @workflow.managed_issues.find(params[:id])
       if @managed_issue.update(managed_issue_params)
+        enqueue_database_write_refresh!(@workflow)
         redirect_to "/workflows/#{@workflow.id}/issues"
       else
         render :edit, status: :unprocessable_entity
@@ -59,12 +61,17 @@ module Symphony
 
       @managed_issue = @workflow.managed_issues.find(params[:id])
       @managed_issue.destroy!
+      enqueue_database_write_refresh!(@workflow)
       redirect_to "/workflows/#{@workflow.id}/issues"
     end
 
     private
       def managed_issue_params
         params.require(:managed_issue).permit(:identifier, :title, :description, :priority, :state)
+      end
+
+      def enqueue_database_write_refresh!(workflow)
+        WorkflowTriggerScheduler.enqueue(workflow_id: workflow.id, source: "database_write")
       end
   end
 end

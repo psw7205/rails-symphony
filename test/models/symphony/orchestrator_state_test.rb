@@ -29,6 +29,43 @@ class Symphony::OrchestratorStateTest < ActiveSupport::TestCase
     assert_equal second_workflow.id, second_state.managed_workflow_id
   end
 
+  test "belongs to last workflow trigger event" do
+    association = Symphony::OrchestratorState.reflect_on_association(:last_workflow_trigger_event)
+
+    assert_not_nil association
+    assert_equal :belongs_to, association.macro
+  end
+
+  test "persists trigger and tick health summary fields" do
+    workflow, = build_managed_workflows
+    trigger_event = Symphony::WorkflowTriggerEvent.create!(
+      managed_workflow: workflow,
+      source: "manual_refresh",
+      status: "succeeded",
+      signature_state: "not_applicable",
+      requested_at: 2.minutes.ago,
+      started_at: 90.seconds.ago,
+      finished_at: 1.minute.ago
+    )
+
+    state = Symphony::OrchestratorState.for_workflow!(workflow.id)
+    state.update!(
+      last_trigger_source: "manual_refresh",
+      last_triggered_at: Time.current,
+      last_tick_started_at: 90.seconds.ago,
+      last_tick_finished_at: 1.minute.ago,
+      last_tick_status: "succeeded",
+      last_tick_error: "none",
+      last_workflow_trigger_event: trigger_event
+    )
+
+    state.reload
+    assert_equal "manual_refresh", state.last_trigger_source
+    assert_equal "succeeded", state.last_tick_status
+    assert_equal "none", state.last_tick_error
+    assert_equal trigger_event.id, state.last_workflow_trigger_event_id
+  end
+
   private
     def build_managed_workflows
       project = Symphony::ManagedProject.create!(name: "State Project", slug: "state-project", status: "active")

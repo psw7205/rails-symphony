@@ -14,15 +14,19 @@ class Symphony::PollJobTest < ActiveJob::TestCase
     Symphony.orchestrator = nil
   end
 
-  test "perform enqueues workflow poll jobs for active managed workflows" do
+  test "perform uses the trigger scheduler for active managed workflows" do
     active_workflow = build_managed_workflow(slug: "poll-active-workflow", name: "Poll Active Workflow", status: "active")
     build_managed_workflow(slug: "poll-inactive-workflow", name: "Poll Inactive Workflow", status: "inactive")
 
-    assert_enqueued_with(job: Symphony::WorkflowPollJob, args: [ { workflow_id: active_workflow.id } ]) do
+    assert_enqueued_with(job: Symphony::WorkflowPollJob) do
       Symphony::PollJob.perform_now
     end
 
-    assert_equal 1, enqueued_jobs.count { |job| job[:job] == Symphony::WorkflowPollJob }
+    poll_jobs = enqueued_jobs.select { |job| job[:job] == Symphony::WorkflowPollJob }
+    assert_equal 1, poll_jobs.count
+    assert_equal active_workflow.id, poll_jobs.first[:args].first["workflow_id"]
+    event = Symphony::WorkflowTriggerEvent.find_by!(managed_workflow_id: active_workflow.id, source: "poll")
+    assert_equal "enqueued", event.status
   end
 
   test "perform still ticks the legacy orchestrator when present" do
@@ -69,6 +73,7 @@ class Symphony::PollJobTest < ActiveJob::TestCase
       Symphony::RetryEntry.delete_all
       Symphony::PersistedIssue.delete_all
       Symphony::OrchestratorState.delete_all
+      Symphony::WorkflowTriggerEvent.delete_all
       Symphony::ManagedIssue.delete_all
       Symphony::ManagedWorkflow.delete_all
       Symphony::AgentConnection.delete_all
