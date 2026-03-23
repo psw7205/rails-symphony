@@ -45,6 +45,17 @@
     <section class="section-card">
       <div class="section-header">
         <div>
+          <h2 class="section-title">Capabilities</h2>
+          <p class="section-copy">Tracker capabilities currently available for this workflow.</p>
+        </div>
+      </div>
+
+      <p class="mono"><%= @capabilities.join(", ") %></p>
+    </section>
+
+    <section class="section-card">
+      <div class="section-header">
+        <div>
           <h2 class="section-title">Running sessions</h2>
           <p class="section-copy">Current running entries for this workflow.</p>
         </div>

@@ -220,6 +220,16 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "3m 0s"
   end
 
+  test "GET /workflows/:id renders tracker capabilities" do
+    workflow = build_managed_workflow(tracker_kind: "database", slug: "workflow-database", name: "Workflow Database")
+
+    get "/workflows/#{workflow.id}"
+    assert_response :success
+    assert_includes response.body, "Capabilities"
+    assert_includes response.body, "create_issue"
+    assert_includes response.body, "update_issue"
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all
@@ -233,16 +243,16 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
       Symphony::ManagedProject.delete_all
     end
 
-    def build_managed_workflow
-      project = Symphony::ManagedProject.create!(name: "Workflow Alpha Project", slug: "workflow-alpha-project", status: "active")
+    def build_managed_workflow(tracker_kind: "memory", slug: "workflow-alpha", name: "Workflow Alpha")
+      project = Symphony::ManagedProject.create!(name: "#{name} Project", slug: "#{slug}-project", status: "active")
       tracker_connection = Symphony::TrackerConnection.create!(
-        name: "Workflow Alpha Memory",
-        kind: "memory",
+        name: "#{name} Tracker",
+        kind: tracker_kind,
         status: "active",
         config: {}
       )
       agent_connection = Symphony::AgentConnection.create!(
-        name: "Workflow Alpha Codex",
+        name: "#{name} Codex",
         kind: "codex",
         status: "active",
         config: { codex: { command: "bin/codex app-server" } }
@@ -252,8 +262,8 @@ class Symphony::WorkflowsControllerTest < ActionDispatch::IntegrationTest
         managed_project: project,
         tracker_connection: tracker_connection,
         agent_connection: agent_connection,
-        name: "Workflow Alpha",
-        slug: "workflow-alpha",
+        name: name,
+        slug: slug,
         status: "active",
         prompt_template: "Workflow show prompt",
         runtime_config: { workspace: { root: "workflow-show-workspaces" } }
