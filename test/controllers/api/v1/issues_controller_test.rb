@@ -48,6 +48,38 @@ class Api::V1::IssuesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "issue_not_found", body["error"]["code"]
   end
 
+  test "GET /api/v1/:identifier does not leak managed workflow trigger metadata" do
+    workflow = build_managed_workflow
+    trigger_event = Symphony::WorkflowTriggerEvent.create!(
+      managed_workflow: workflow,
+      source: "webhook_github",
+      provider: "github",
+      delivery_id: "managed-delivery-1",
+      status: "failed",
+      signature_state: "verified",
+      requested_at: 2.minutes.ago,
+      finished_at: 1.minute.ago,
+      error: "tick_failed"
+    )
+    Symphony::OrchestratorState.for_workflow!(workflow.id).update!(
+      last_trigger_source: "webhook_github",
+      last_triggered_at: trigger_event.requested_at,
+      last_tick_started_at: 90.seconds.ago,
+      last_tick_finished_at: trigger_event.finished_at,
+      last_tick_status: "failed",
+      last_tick_error: "tick_failed",
+      last_workflow_trigger_event: trigger_event
+    )
+
+    get api_v1_issue_path("MT-1")
+    assert_response :success
+
+    body = JSON.parse(response.body)
+    assert_empty body["recent_events"]
+    assert_nil body.dig("tracked", "last_trigger_source")
+    assert_nil body.dig("tracked", "last_tick_status")
+  end
+
   test "GET /api/v1/workflows/:workflow_id/issues/:identifier returns workflow scoped issue details" do
     workflow = build_managed_workflow
     context = Symphony::WorkflowRuntimeManager.fetch(workflow.id)

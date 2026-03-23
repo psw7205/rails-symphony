@@ -25,7 +25,7 @@ module Api
           retrying: retrying,
           workspace_path: Symphony.workspace&.workspace_path(identifier),
           orchestrator_state: Symphony::OrchestratorState.current,
-          trigger_events: Symphony::WorkflowTriggerEvent.order(requested_at: :desc).limit(5)
+          trigger_events: Symphony::WorkflowTriggerEvent.none
         )
       end
 

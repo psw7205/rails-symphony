@@ -29,6 +29,15 @@ class Symphony::OrchestratorStateTest < ActiveSupport::TestCase
     assert_equal second_workflow.id, second_state.managed_workflow_id
   end
 
+  test "current uses a nil-scoped legacy singleton row even when managed workflow states exist" do
+    workflow, = build_managed_workflows
+    Symphony::OrchestratorState.for_workflow!(workflow.id)
+
+    state = Symphony::OrchestratorState.current
+
+    assert_nil state.managed_workflow_id
+  end
+
   test "belongs to last workflow trigger event" do
     association = Symphony::OrchestratorState.reflect_on_association(:last_workflow_trigger_event)
 

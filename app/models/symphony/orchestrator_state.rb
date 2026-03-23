@@ -11,7 +11,7 @@ module Symphony
 
     # Legacy file-mode singleton accessor. Managed mode should use for_workflow!.
     def self.current
-      first_or_create!
+      find_or_create_by!(managed_workflow_id: nil)
     end
 
     def self.record_trigger!(workflow_id:, source:, requested_at:, trigger_event:)

@@ -112,7 +112,7 @@ module Symphony
       end
 
       def stored_orchestrator_state
-        return OrchestratorState.first if managed_workflow_id.blank?
+        return OrchestratorState.find_by(managed_workflow_id: nil) if managed_workflow_id.blank?
 
         OrchestratorState.find_by(managed_workflow_id: managed_workflow_id)
       end
