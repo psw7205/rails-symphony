@@ -28,7 +28,7 @@ sequenceDiagram
     Boot->>WS: new(path) → load & parse WORKFLOW.md
     Boot->>Boot: config.validate!
     Boot->>WK: new(root, hooks, timeout)
-    Boot->>TR: build_tracker(cfg) → Linear or Memory
+    Boot->>TR: build_tracker(cfg) → Linear, Memory, or GithubIssues
     Boot->>AG: Agents::Codex.new(config)
     Boot->>TR: fetch_issues_by_states(terminal) → cleanup workspaces
     Boot->>OR: new(tracker, workspace, agent, workflow_store, on_dispatch)

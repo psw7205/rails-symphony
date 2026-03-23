@@ -13,7 +13,7 @@
 | Framework | Rails 8 + SQLite |
 | Background Job | Solid Queue |
 | Agent | 어댑터 패턴 — Codex (1차), Claude Code (2차) |
-| Tracker | 어댑터 패턴 — Linear, Database (현재), GitHub Issues (후속) |
+| Tracker | 어댑터 패턴 — Linear, Database, GitHub Issues |
 | Template | Liquid (strict mode) |
 
 ## 아키텍처
@@ -25,7 +25,7 @@ Policy Layer        → WORKFLOW.md 또는 DB-managed prompt template
 Configuration Layer → Workflow/WorkflowStore, ManagedWorkflow/ManagedWorkflowStore, ServiceConfig
 Coordination Layer  → PollJob, WorkflowPollJob, Orchestrator, WorkflowRuntimeManager
 Execution Layer     → AgentWorkerJob, Workspace
-Integration Layer   → Trackers::Linear, Trackers::Database
+Integration Layer   → Trackers::Linear, Trackers::Database, Trackers::GithubIssues
 Observability Layer → Rails.logger + structured tags
 ```
 

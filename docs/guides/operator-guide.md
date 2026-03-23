@@ -18,6 +18,7 @@ Symphony를 설정하고 실행하는 방법을 다룬다.
 - SQLite3
 - Codex CLI (`codex app-server` 명령 사용 가능)
 - Linear API 키 (Linear 트래커 사용 시)
+- GitHub token (GitHub Issues 트래커 사용 시)
 
 ### 셋업
 
@@ -90,10 +91,11 @@ YAML front matter + Liquid 템플릿 본문으로 구성된 단일 파일 설정
 
 | 키 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `kind` | string | *필수* | `linear` 또는 `memory` |
-| `api_key` | string | `$LINEAR_API_KEY` | API 키. `$ENV_VAR` 형태로 환경변수 참조 가능 |
-| `endpoint` | string | `https://api.linear.app/graphql` | GraphQL 엔드포인트 |
+| `kind` | string | *필수* | `linear`, `memory`, `database`, `github` |
+| `api_key` | string | kind별 fallback | API 키. `$ENV_VAR` 형태로 환경변수 참조 가능 |
+| `endpoint` | string | kind별 기본값 | Tracker API 엔드포인트 |
 | `project_slug` | string | *필수(linear)* | Linear 프로젝트 슬러그 |
+| `repo` | string | *필수(github)* | GitHub 저장소 (`owner/repo`) |
 | `active_states` | array | `[Todo, In Progress]` | 디스패치 대상 이슈 상태 |
 | `terminal_states` | array | `[Closed, Cancelled, Canceled, Duplicate, Done]` | 종료 상태 (워크스페이스 자동 정리) |
 
@@ -218,6 +220,29 @@ tracker:
 ```
 
 인메모리 배열 기반. 테스트 코드에서 `Trackers::Memory#add_issue`, `#update_issue_state`로 제어한다.
+
+### Database
+
+```yaml
+tracker:
+  kind: database
+```
+
+admin console 내부 ledger(`ManagedIssue`)를 source of truth로 사용하는 tracker다. managed DB mode에서 workflow별 issue CRUD와 함께 사용한다.
+
+### GitHub Issues
+
+```yaml
+tracker:
+  kind: github
+  api_key: $GITHUB_TOKEN
+  repo: owner/repo
+  active_states: [Todo, In Progress]
+```
+
+- GitHub REST API v3를 사용한다
+- state는 issue label을 기반으로 매핑한다
+- 현재 범위는 read/sync 중심이며 외부 mutation은 후속 범위다
 
 ---
 
@@ -397,7 +422,7 @@ Rails.logger에 구조화 태그로 출력된다.
 | 증상 | 원인 | 해결 |
 |---|---|---|
 | `Config validation failed: tracker.api_key is required` | `$LINEAR_API_KEY` 미설정 | 환경변수 설정 |
-| `Unsupported tracker kind` | `tracker.kind` 오타 | `linear` 또는 `memory`만 지원 |
+| `Unsupported tracker kind` | `tracker.kind` 오타 또는 지원되지 않는 legacy 경로 사용 | `linear`, `memory`, `database`, `github` 중 하나를 사용하고, managed DB mode 여부를 확인 |
 | `Workflow file not found` | WORKFLOW.md 경로 오류 | 절대 경로 또는 현재 디렉토리 확인 |
 | `Hook timed out` | 훅 실행이 timeout_ms 초과 | 훅 스크립트 최적화 또는 `timeout_ms` 증가 |
 | `workspace_outside_root` | 식별자에 `../` 등 경로 탈출 시도 | 식별자 sanitize 확인 |
