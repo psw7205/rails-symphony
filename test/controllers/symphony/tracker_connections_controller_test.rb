@@ -103,6 +103,20 @@ class Symphony::TrackerConnectionsControllerTest < ActionDispatch::IntegrationTe
     assert_includes response.body, "Name can&#39;t be blank"
   end
 
+  test "DELETE /tracker_connections/:id destroys a tracker connection" do
+    tracker_connection = Symphony::TrackerConnection.create!(
+      name: "Deletable Tracker",
+      kind: "linear",
+      status: "active",
+      config: { "project_slug" => "OPS" }
+    )
+
+    delete "/tracker_connections/#{tracker_connection.id}"
+
+    assert_redirected_to "/projects"
+    assert_nil Symphony::TrackerConnection.find_by(id: tracker_connection.id)
+  end
+
   private
     def reset_console_records!
       Symphony::RunAttempt.delete_all

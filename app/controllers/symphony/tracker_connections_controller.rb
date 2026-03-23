@@ -31,6 +31,12 @@ module Symphony
       end
     end
 
+    def destroy
+      @tracker_connection = TrackerConnection.find(params[:id])
+      @tracker_connection.destroy!
+      redirect_to "/projects"
+    end
+
     private
       def tracker_connection_params
         params.require(:tracker_connection).permit(:name, :kind, :status)

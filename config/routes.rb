@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   post "tracker_connections", to: "symphony/tracker_connections#create"
   get "tracker_connections/:id/edit", to: "symphony/tracker_connections#edit"
   patch "tracker_connections/:id", to: "symphony/tracker_connections#update"
+  delete "tracker_connections/:id", to: "symphony/tracker_connections#destroy"
   get "workflows/new", to: "symphony/workflows#new"
   post "workflows", to: "symphony/workflows#create"
   get "workflows/:id/edit", to: "symphony/workflows#edit"
