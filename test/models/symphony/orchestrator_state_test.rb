@@ -38,6 +38,16 @@ class Symphony::OrchestratorStateTest < ActiveSupport::TestCase
     assert_nil state.managed_workflow_id
   end
 
+  test "disallows duplicate summary rows for the same managed workflow" do
+    workflow, = build_managed_workflows
+    Symphony::OrchestratorState.for_workflow!(workflow.id)
+
+    duplicate_state = Symphony::OrchestratorState.new(managed_workflow: workflow)
+
+    assert_not duplicate_state.valid?
+    assert_includes duplicate_state.errors[:managed_workflow_id], "has already been taken"
+  end
+
   test "belongs to last workflow trigger event" do
     association = Symphony::OrchestratorState.reflect_on_association(:last_workflow_trigger_event)
 

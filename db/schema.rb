@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_23_100500) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_23_111500) do
   create_table "symphony_agent_connections", force: :cascade do |t|
     t.json "config"
     t.datetime "created_at", null: false
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_23_100500) do
     t.integer "managed_workflow_id"
     t.datetime "updated_at", null: false
     t.index ["last_workflow_trigger_event_id"], name: "idx_on_last_workflow_trigger_event_id_c4f35c31c1"
+    t.index ["managed_workflow_id"], name: "idx_symphony_orchestrator_states_on_managed_workflow_id_unique", unique: true, where: "managed_workflow_id IS NOT NULL"
     t.index ["managed_workflow_id"], name: "index_symphony_orchestrator_states_on_managed_workflow_id"
   end
 

@@ -4,6 +4,7 @@ module Symphony
 
     belongs_to :managed_workflow, class_name: "Symphony::ManagedWorkflow", optional: true
     belongs_to :last_workflow_trigger_event, class_name: "Symphony::WorkflowTriggerEvent", optional: true
+    validates :managed_workflow_id, uniqueness: true, allow_nil: true
 
     def self.for_workflow!(managed_workflow_id)
       find_or_create_by!(managed_workflow_id: managed_workflow_id)
